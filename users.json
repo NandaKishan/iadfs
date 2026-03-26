@@ -1,0 +1,17 @@
+[
+  {
+    "username": "admin",
+    "password": "$2b$10$7QJq98z7Z9j7x0vP6z1Z2uPz8Hqz7l9uYk8gYw2H7Q5Qy9ZzYyZ7K",
+    "role": "ADMIN"
+  },
+  {
+    "username": "hod",
+    "password": "$2b$10$7QJq98z7Z9j7x0vP6z1Z2uPz8Hqz7l9uYk8gYw2H7Q5Qy9ZzYyZ7K",
+    "role": "HOD"
+  },
+  {
+    "username": "accounts",
+    "password": "$2b$10$7QJq98z7Z9j7x0vP6z1Z2uPz8Hqz7l9uYk8gYw2H7Q5Qy9ZzYyZ7K",
+    "role": "ACCOUNTS"
+  }
+]

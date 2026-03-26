@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1>Dashboard</h1>
+
+<input type="file" id="file">
+<button onclick="upload()">Upload</button>
+
+<ul id="list"></ul>
+
+<script>
+const user = JSON.parse(localStorage.getItem("user"));
+
+async function upload() {
+  const file = document.getElementById("file").files[0];
+  const fd = new FormData();
+  fd.append("file", file);
+
+  await fetch("/upload", { method: "POST", body: fd });
+  load();
+}
+
+async function load() {
+  const res = await fetch("/documents");
+  const docs = await res.json();
+
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  docs.forEach(doc => {
+    const li = document.createElement("li");
+
+    let btn = "";
+    if (doc.route === user.role) {
+      btn = `<button onclick="approve(${doc.id})">Approve</button>`;
+    }
+
+    li.innerHTML = `
+      ${doc.name} | ${doc.status} | Route: ${doc.route}
+      ${btn}
+    `;
+
+    list.appendChild(li);
+  });
+}
+
+async function approve(id) {
+  await fetch("/approve", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ id, role: user.role })
+  });
+
+  load();
+}
+
+load();
+</script>
+
+</body>
+</html>
