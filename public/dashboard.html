@@ -1,19 +1,86 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <title>Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
 <body>
 
-<h1>Dashboard</h1>
+<!-- 🔥 NAVBAR -->
+<div class="navbar">
 
-<input type="file" id="file">
-<button onclick="upload()">Upload</button>
+  <div class="brand">
+    <img src="spider.png" alt="Venatrix Logo">
+    <div class="brand-text">
+      <h2>VENATRIX</h2>
+      <span>Intelligent Document Flow</span>
+    </div>
+  </div>
 
-<ul id="list"></ul>
+  <div style="display:flex; gap:15px; align-items:center;">
+    <span id="role" style="color:#1e293b;"></span>
+    <button onclick="logout()" style="background:#ef4444;">Logout</button>
+  </div>
+
+</div>
+
+<!-- 🔥 MAIN -->
+<div class="container">
+
+  <div class="card">
+    <h3>Upload Document</h3>
+    <input type="file" id="file">
+    <button onclick="upload()">Upload</button>
+  </div>
+
+  <div class="card" id="adminPanel" style="display:none;">
+    <h3>Create Workflow</h3>
+    <input id="type" placeholder="Type (e.g. internship)">
+    <input id="flow" placeholder="Flow (HOD,ADMIN)">
+    <button onclick="createWorkflow()">Create</button>
+  </div>
+
+  <div class="card full">
+    <h3>Documents</h3>
+    <div id="list" class="doc-list"></div>
+  </div>
+
+</div>
 
 <script>
+
+/* ===== USER SAFETY ===== */
 const user = JSON.parse(localStorage.getItem("user"));
 
+if (!user) {
+  window.location = "index.html";
+}
+
+/* ===== ROLE DISPLAY ===== */
+document.getElementById("role").innerText = user.role;
+
+/* ===== ADMIN PANEL ===== */
+if (user.role === "ADMIN") {
+  document.getElementById("adminPanel").style.display = "block";
+}
+
+/* ===== LOGOUT ===== */
+function logout() {
+  localStorage.removeItem("user");
+  window.location = "index.html";
+}
+
+/* ===== UPLOAD ===== */
 async function upload() {
   const file = document.getElementById("file").files[0];
+
+  if (!file) {
+    alert("Select a file first");
+    return;
+  }
+
   const fd = new FormData();
   fd.append("file", file);
 
@@ -21,30 +88,43 @@ async function upload() {
   load();
 }
 
+/* ===== LOAD DOCUMENTS ===== */
 async function load() {
+  const list = document.getElementById("list");
+  list.innerHTML = "<p>Loading...</p>";
+
   const res = await fetch("/documents");
   const docs = await res.json();
 
-  const list = document.getElementById("list");
   list.innerHTML = "";
 
+  if (docs.length === 0) {
+    list.innerHTML = "<p style='color:#94a3b8;'>No documents yet</p>";
+    return;
+  }
+
   docs.forEach(doc => {
-    const li = document.createElement("li");
+    const div = document.createElement("div");
+    div.className = "doc-card";
 
     let btn = "";
-    if (doc.route === user.role) {
+    if (doc.flow[doc.currentStep] === user.role) {
       btn = `<button onclick="approve(${doc.id})">Approve</button>`;
     }
 
-    li.innerHTML = `
-      ${doc.name} | ${doc.status} | Route: ${doc.route}
+    div.innerHTML = `
+      <h4>${doc.name}</h4>
+      <p>Status: ${doc.status}</p>
+      <p>Current: ${doc.flow[doc.currentStep] || "Done"}</p>
+      <p class="flow">${doc.flow.join(" → ")}</p>
       ${btn}
     `;
 
-    list.appendChild(li);
+    list.appendChild(div);
   });
 }
 
+/* ===== APPROVE ===== */
 async function approve(id) {
   await fetch("/approve", {
     method: "POST",
@@ -55,7 +135,28 @@ async function approve(id) {
   load();
 }
 
+/* ===== CREATE WORKFLOW ===== */
+async function createWorkflow() {
+  const type = document.getElementById("type").value;
+  const flow = document.getElementById("flow").value.split(",");
+
+  if (!type || flow.length === 0) {
+    alert("Enter valid workflow");
+    return;
+  }
+
+  await fetch("/create-workflow", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ type, flow })
+  });
+
+  alert("Workflow created");
+}
+
+/* ===== INIT ===== */
 load();
+
 </script>
 
 </body>

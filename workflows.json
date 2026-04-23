@@ -1,0 +1,28 @@
+[
+  {
+    "type": "leave",
+    "flow": [
+      "HOD",
+      "ADMIN"
+    ]
+  },
+  {
+    "type": "finance",
+    "flow": [
+      "ACCOUNTS",
+      "ADMIN"
+    ]
+  },
+  {
+    "type": "schedule",
+    "flow": [
+      "HOD"
+    ]
+  },
+  {
+    "type": "Budget Approval For Annual Fest",
+    "flow": [
+      "Principal"
+    ]
+  }
+]

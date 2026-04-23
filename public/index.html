@@ -1,32 +1,79 @@
 <!DOCTYPE html>
 <html>
-<body>
+<head>
+  <title>Venatrix Login</title>
 
-<h2>Login</h2>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 
-<input id="user" placeholder="Username">
-<input id="pass" placeholder="Password" type="password">
-<button onclick="login()">Login</button>
+</head>
+
+<body class="center">
+
+<div class="glass-card">
+
+  <!-- 🔥 BRAND -->
+  <div class="brand" style="justify-content:center; margin-bottom:25px;">
+    <img src="spider.png" class="logo">
+    <div class="brand-text">
+      <h2>VENATRIX</h2>
+      <span class="tagline">Secure • Intelligent • Autonomous</span>
+    </div>
+  </div>
+
+  <!-- 🔥 INPUTS -->
+  <input id="user" placeholder="Username">
+  <input id="pass" type="password" placeholder="Password">
+
+  <!-- 🔥 BUTTON -->
+  <button id="loginBtn" onclick="login()">Login</button>
+
+</div>
 
 <script>
+
+/* ===== ENTER KEY SUPPORT ===== */
+document.getElementById("pass").addEventListener("keypress", function(e) {
+  if (e.key === "Enter") login();
+});
+
+/* ===== LOGIN FUNCTION ===== */
 async function login() {
-  const username = document.getElementById("user").value;
-  const password = document.getElementById("pass").value;
+  const username = document.getElementById("user").value.trim();
+  const password = document.getElementById("pass").value.trim();
+  const btn = document.getElementById("loginBtn");
 
-  const res = await fetch("/login", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ username, password })
-  });
-
-  if (res.ok) {
-    const data = await res.json();
-    localStorage.setItem("user", JSON.stringify(data));
-    window.location = "dashboard.html";
-  } else {
-    alert("Login failed");
+  if (!username || !password) {
+    alert("Enter username and password");
+    return;
   }
+
+  btn.innerText = "Logging in...";
+  btn.disabled = true;
+
+  try {
+    const res = await fetch("/login", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ username, password })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      localStorage.setItem("user", JSON.stringify(data));
+      window.location = "dashboard.html";
+    } else {
+      alert("Invalid credentials");
+    }
+
+  } catch (err) {
+    alert("Server error");
+  }
+
+  btn.innerText = "Login";
+  btn.disabled = false;
 }
+
 </script>
 
 </body>

@@ -18,6 +18,8 @@ let documents = fs.existsSync("data.json")
   : [];
 
 let users = JSON.parse(fs.readFileSync("users.json"));
+let workflows = JSON.parse(fs.readFileSync("workflows.json"));
+
 
 // 🔐 LOGIN
 app.post("/login", async (req, res) => {
@@ -32,19 +34,28 @@ app.post("/login", async (req, res) => {
   res.json({ username: user.username, role: user.role });
 });
 
-// 📥 Upload
+
+// 📥 Upload with dynamic workflow
 app.post("/upload", upload.single("file"), (req, res) => {
   const name = req.file.originalname.toLowerCase();
 
-  let route = "HOD";
-  if (name.includes("finance")) route = "ACCOUNTS";
+  let type = "leave";
+
+  workflows.forEach(w => {
+    if (name.includes(w.type)) {
+      type = w.type;
+    }
+  });
+
+  const wf = workflows.find(w => w.type === type);
 
   const doc = {
     id: Date.now(),
     name: req.file.originalname,
-    status: "Pending",
-    route: route,
-    approvedBy: []
+    type: type,
+    flow: wf ? wf.flow : ["ADMIN"],
+    currentStep: 0,
+    status: "Pending"
   };
 
   documents.push(doc);
@@ -53,19 +64,24 @@ app.post("/upload", upload.single("file"), (req, res) => {
   res.json(doc);
 });
 
-// 📤 Get docs
+
+// 📤 Get documents
 app.get("/documents", (req, res) => {
   res.json(documents);
 });
 
-// 🔄 Approve (ROLE CHECK)
+
+// 🔄 Approve step
 app.post("/approve", (req, res) => {
   const { id, role } = req.body;
 
   documents = documents.map(doc => {
-    if (doc.id === id && doc.route === role) {
-      doc.status = "Approved";
-      doc.approvedBy.push(role);
+    if (doc.id === id && doc.flow[doc.currentStep] === role) {
+      doc.currentStep++;
+
+      if (doc.currentStep >= doc.flow.length) {
+        doc.status = "Fully Approved";
+      }
     }
     return doc;
   });
@@ -75,4 +91,25 @@ app.post("/approve", (req, res) => {
   res.send("Approved");
 });
 
-app.listen(3000, () => console.log("🚀 Running on http://localhost:3000"));
+
+// 🏗️ Create workflow (ADMIN)
+app.post("/create-workflow", (req, res) => {
+  const { type, flow } = req.body;
+
+  workflows.push({ type, flow });
+
+  fs.writeFileSync("workflows.json", JSON.stringify(workflows, null, 2));
+
+  res.send("Workflow created");
+});
+
+
+// 📤 Get workflows
+app.get("/workflows", (req, res) => {
+  res.json(workflows);
+});
+
+
+app.listen(3000, () => {
+  console.log("🚀 Running on http://localhost:3000");
+});

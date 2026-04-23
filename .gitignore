@@ -1,0 +1,11 @@
+# mac junk
+.DS_Store
+
+# node
+node_modules/
+
+# uploads (runtime files)
+uploads/
+
+# env files (future)
+.env
