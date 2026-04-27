@@ -24,5 +24,11 @@
     "flow": [
       "Principal"
     ]
+  },
+  {
+    "type": "internship drive",
+    "flow": [
+      "hod"
+    ]
   }
 ]

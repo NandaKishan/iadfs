@@ -1,29 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Dashboard</title>
+  <title>Venatrix Dashboard</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="dashboard.png">
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
+<!-- 🔥 TOAST -->
+<div id="toast" style="
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(15,23,42,0.9);
+  color: white;
+  padding: 12px 18px;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  display: none;
+  z-index: 999;
+  font-size: 14px;
+"></div>
+
 <!-- 🔥 NAVBAR -->
 <div class="navbar">
-
   <div class="brand">
     <img src="spider.png" alt="Venatrix Logo">
     <div class="brand-text">
       <h2>VENATRIX</h2>
-      <span>Intelligent Document Flow</span>
+      <span>Intelligent Information Flow</span>
     </div>
   </div>
 
   <div style="display:flex; gap:15px; align-items:center;">
-    <span id="role" style="color:#1e293b;"></span>
+    <span id="role" class="role"></span>
     <button onclick="logout()" style="background:#ef4444;">Logout</button>
   </div>
-
 </div>
 
 <!-- 🔥 MAIN -->
@@ -42,6 +56,34 @@
     <button onclick="createWorkflow()">Create</button>
   </div>
 
+  <div class="card" id="rolePanel" style="display:none;">
+    <h3>Role Management</h3>
+
+    <input id="roleInput" class="input-field" placeholder="Enter role (e.g. HOD)">
+    <button onclick="createRole()">Add Role</button>
+
+    <h4 style="margin-top:20px;">Existing Roles</h4>
+    <div id="roleList"></div>
+  </div>
+
+  <div class="card" id="userPanel" style="display:none;">
+    <h3>Create User</h3>
+
+    <input id="newUser" class="input-field" placeholder="Username">
+    <input id="newPass" class="input-field" placeholder="Password">
+
+    <select id="roleSelect" class="input-field">
+      <option value="" disabled selected>Select Role</option>
+    </select>
+
+    <button onclick="createUser()">Create User</button>
+  </div>
+
+  <div class="card" id="userListPanel" style="display:none;">
+    <h3>Users</h3>
+    <div id="userList"></div>
+  </div>
+
   <div class="card full">
     <h3>Documents</h3>
     <div id="list" class="doc-list"></div>
@@ -51,25 +93,61 @@
 
 <script>
 
-/* ===== USER SAFETY ===== */
-const user = JSON.parse(localStorage.getItem("user"));
+/* ===== TOAST ===== */
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.innerText = msg;
+  t.style.display = "block";
+
+  setTimeout(() => {
+    t.style.display = "none";
+  }, 2500);
+}
+
+/* ===== 🔥 JWT ADDITION (NO REMOVAL) ===== */
+const token = sessionStorage.getItem("token");
+
+/* fallback to old system if token not present */
+let user = JSON.parse(sessionStorage.getItem("user"));
+
+if (token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    user = payload;
+  } catch {}
+}
 
 if (!user) {
   window.location = "index.html";
 }
 
-/* ===== ROLE DISPLAY ===== */
 document.getElementById("role").innerText = user.role;
 
-/* ===== ADMIN PANEL ===== */
+/* ===== ADMIN VIEW ===== */
 if (user.role === "ADMIN") {
   document.getElementById("adminPanel").style.display = "block";
+  document.getElementById("rolePanel").style.display = "block";
+  document.getElementById("userPanel").style.display = "block";
+  document.getElementById("userListPanel").style.display = "block";
+
+  loadRoles();
+  loadRolesIntoDropdown();
+  loadUsers();
 }
 
 /* ===== LOGOUT ===== */
 function logout() {
-  localStorage.removeItem("user");
+  sessionStorage.removeItem("user");
+  sessionStorage.removeItem("token");
   window.location = "index.html";
+}
+
+/* ===== AUTH HEADER ===== */
+function getHeaders(json = true) {
+  const headers = {};
+  if (json) headers["Content-Type"] = "application/json";
+  if (token) headers["authorization"] = token;
+  return headers;
 }
 
 /* ===== UPLOAD ===== */
@@ -77,14 +155,26 @@ async function upload() {
   const file = document.getElementById("file").files[0];
 
   if (!file) {
-    alert("Select a file first");
+    showToast("Select a file first");
     return;
   }
 
   const fd = new FormData();
   fd.append("file", file);
 
-  await fetch("/upload", { method: "POST", body: fd });
+  const res = await fetch("/upload", {
+    method: "POST",
+    headers: token ? { "authorization": token } : {},
+    body: fd
+  });
+
+  // ✅ ONLY ADDITION
+  if (res.ok) {
+    showToast("Upload successful ✅");
+  } else {
+    showToast("Upload failed ❌");
+  }
+
   load();
 }
 
@@ -93,15 +183,13 @@ async function load() {
   const list = document.getElementById("list");
   list.innerHTML = "<p>Loading...</p>";
 
-  const res = await fetch("/documents");
+  const res = await fetch("/documents", {
+    headers: token ? { "authorization": token } : {}
+  });
+
   const docs = await res.json();
 
   list.innerHTML = "";
-
-  if (docs.length === 0) {
-    list.innerHTML = "<p style='color:#94a3b8;'>No documents yet</p>";
-    return;
-  }
 
   docs.forEach(doc => {
     const div = document.createElement("div");
@@ -124,34 +212,189 @@ async function load() {
   });
 }
 
-/* ===== APPROVE ===== */
+/* ===== APPROVE DOC ===== */
 async function approve(id) {
   await fetch("/approve", {
     method: "POST",
-    headers: {"Content-Type":"application/json"},
+    headers: getHeaders(),
     body: JSON.stringify({ id, role: user.role })
   });
 
   load();
 }
 
-/* ===== CREATE WORKFLOW ===== */
+/* ===== WORKFLOW ===== */
 async function createWorkflow() {
   const type = document.getElementById("type").value;
   const flow = document.getElementById("flow").value.split(",");
 
   if (!type || flow.length === 0) {
-    alert("Enter valid workflow");
+    showToast("Enter valid workflow");
     return;
   }
 
   await fetch("/create-workflow", {
     method: "POST",
-    headers: {"Content-Type":"application/json"},
+    headers: getHeaders(),
     body: JSON.stringify({ type, flow })
   });
 
-  alert("Workflow created");
+  showToast("Workflow created");
+}
+
+/* ===== ROLE ===== */
+async function createRole() {
+  const role = document.getElementById("roleInput").value;
+
+  if (!role) {
+    showToast("Enter role name");
+    return;
+  }
+
+  await fetch("/create-role", {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({
+      role,
+      institute: user.institute
+    })
+  });
+
+  document.getElementById("roleInput").value = "";
+
+  loadRoles();
+  loadRolesIntoDropdown();
+}
+
+/* ===== LOAD ROLES ===== */
+async function loadRoles() {
+  const res = await fetch(`/roles/${user.institute}`, {
+    headers: token ? { "authorization": token } : {}
+  });
+
+  const roles = await res.json();
+
+  const list = document.getElementById("roleList");
+  list.innerHTML = "";
+
+  roles.forEach(r => {
+    const div = document.createElement("div");
+    div.className = "doc-card";
+    div.innerText = r;
+    list.appendChild(div);
+  });
+}
+
+/* ===== DROPDOWN ===== */
+async function loadRolesIntoDropdown() {
+  const res = await fetch(`/roles/${user.institute}`, {
+    headers: token ? { "authorization": token } : {}
+  });
+
+  const roles = await res.json();
+
+  const select = document.getElementById("roleSelect");
+  select.innerHTML = `<option disabled selected>Select Role</option>`;
+
+  roles.forEach(role => {
+    if (role === "ADMIN") return;
+
+    const option = document.createElement("option");
+    option.value = role;
+    option.innerText = role;
+    select.appendChild(option);
+  });
+}
+
+/* ===== CREATE USER ===== */
+async function createUser() {
+  const username = document.getElementById("newUser").value;
+  const password = document.getElementById("newPass").value;
+  const role = document.getElementById("roleSelect").value;
+
+  if (!username || !password || !role) {
+    showToast("Fill all fields");
+    return;
+  }
+
+  const res = await fetch("/create-user", {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({
+      username,
+      password,
+      role,
+      institute: user.institute
+    })
+  });
+
+  if (!res.ok) {
+    const msg = await res.text();
+    showToast(msg);
+    return;
+  }
+
+  showToast("User created");
+
+  document.getElementById("newUser").value = "";
+  document.getElementById("newPass").value = "";
+
+  loadUsers();
+}
+
+/* ===== LOAD USERS ===== */
+async function loadUsers() {
+  const res = await fetch(`/users/${user.institute}`, {
+    headers: token ? { "authorization": token } : {}
+  });
+
+  const users = await res.json();
+
+  const list = document.getElementById("userList");
+  list.innerHTML = "";
+
+  users.forEach(u => {
+    const div = document.createElement("div");
+    div.className = "doc-card";
+
+    if (u.role === "PENDING") {
+      div.innerHTML = `
+        <strong>${u.username}</strong> — PENDING
+        <br>
+        <button onclick="approveUser('${u.username}')">Approve</button>
+      `;
+    } else {
+      div.innerText = `${u.username} — ${u.role}`;
+    }
+
+    list.appendChild(div);
+  });
+}
+
+/* ===== APPROVE USER ===== */
+async function approveUser(username) {
+  const role = prompt("Enter role (e.g. HOD)");
+
+  if (!role) return;
+
+  const res = await fetch("/approve-user", {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({
+      username,
+      institute: user.institute,
+      role
+    })
+  });
+
+  if (!res.ok) {
+    const msg = await res.text();
+    showToast(msg);
+    return;
+  }
+
+  showToast("User approved");
+  loadUsers();
 }
 
 /* ===== INIT ===== */

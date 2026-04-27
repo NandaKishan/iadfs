@@ -2,13 +2,27 @@
 <html>
 <head>
   <title>Venatrix Login</title>
-
+  <link rel="icon" type="image/png" sizes="32x32" href="login.png">
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-
 </head>
 
 <body class="center">
+
+<!-- 🔥 TOAST -->
+<div id="toast" style="
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(15,23,42,0.95);
+  color: white;
+  padding: 12px 18px;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  display: none;
+  z-index: 999;
+  font-size: 14px;
+"></div>
 
 <div class="glass-card">
 
@@ -21,57 +35,135 @@
     </div>
   </div>
 
-  <!-- 🔥 INPUTS -->
-  <input id="user" placeholder="Username">
-  <input id="pass" type="password" placeholder="Password">
+  <!-- 🔥 MODE SWITCH -->
+  <div style="display:flex; justify-content:center; gap:20px; margin-bottom:20px; font-size:14px;">
+    <span id="loginTab" onclick="switchMode('login')" style="cursor:pointer; font-weight:600;">Login</span>
+    <span id="signupTab" onclick="switchMode('signup')" style="cursor:pointer; color:#94a3b8;">Sign Up</span>
+  </div>
 
-  <!-- 🔥 BUTTON -->
-  <button id="loginBtn" onclick="login()">Login</button>
+  <!-- 🔥 INPUTS -->
+  <select id="institute" class="input-field">
+    <option value="" disabled selected>Select Institute</option>
+    <option value="RVCE">RVCE</option>
+  </select>
+
+  <input id="user" class="input-field" placeholder="Username">
+  <input id="pass" type="password" class="input-field" placeholder="Password">
+
+  <input id="email" class="input-field" placeholder="Institute Email (rvce.edu.in)" style="display:none;">
+
+  <!-- 🔥 ACTION -->
+  <button id="mainBtn" onclick="login()">Login</button>
 
 </div>
 
 <script>
 
-/* ===== ENTER KEY SUPPORT ===== */
+let mode = "login";
+
+/* ===== TOAST ===== */
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.innerText = msg;
+  t.style.display = "block";
+
+  setTimeout(() => {
+    t.style.display = "none";
+  }, 2500);
+}
+
+/* ===== SWITCH MODE ===== */
+function switchMode(newMode) {
+  mode = newMode;
+
+  const emailField = document.getElementById("email");
+  const mainBtn = document.getElementById("mainBtn");
+
+  const loginTab = document.getElementById("loginTab");
+  const signupTab = document.getElementById("signupTab");
+
+  if (mode === "signup") {
+    emailField.style.display = "block";
+    mainBtn.innerText = "Sign Up";
+    mainBtn.onclick = signup;
+
+    loginTab.style.color = "#94a3b8";
+    signupTab.style.color = "white";
+    signupTab.style.fontWeight = "600";
+    loginTab.style.fontWeight = "400";
+  } else {
+    emailField.style.display = "none";
+    mainBtn.innerText = "Login";
+    mainBtn.onclick = login;
+
+    signupTab.style.color = "#94a3b8";
+    loginTab.style.color = "white";
+    loginTab.style.fontWeight = "600";
+    signupTab.style.fontWeight = "400";
+  }
+}
+
+/* ===== ENTER KEY ===== */
 document.getElementById("pass").addEventListener("keypress", function(e) {
-  if (e.key === "Enter") login();
+  if (e.key === "Enter") {
+    if (mode === "login") login();
+    else signup();
+  }
 });
 
-/* ===== LOGIN FUNCTION ===== */
+/* ===== LOGIN (ONLY CHANGE HERE) ===== */
 async function login() {
-  const username = document.getElementById("user").value.trim();
-  const password = document.getElementById("pass").value.trim();
-  const btn = document.getElementById("loginBtn");
+  const username = document.getElementById("user").value;
+  const password = document.getElementById("pass").value;
+  const institute = document.getElementById("institute").value;
 
-  if (!username || !password) {
-    alert("Enter username and password");
+  const res = await fetch("/login", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ username, password, institute })
+  });
+
+  if (res.ok) {
+    const data = await res.json();
+
+    // ✅ ONLY CHANGE: store JWT token instead of user object
+    sessionStorage.setItem("token", data.token);
+
+    window.location = "dashboard.html";
+  } else {
+    const msg = await res.text();
+    showToast(msg);
+  }
+}
+
+/* ===== SIGNUP ===== */
+async function signup() {
+  const username = document.getElementById("user").value;
+  const password = document.getElementById("pass").value;
+  const email = document.getElementById("email").value;
+  const institute = document.getElementById("institute").value;
+
+  if (!username || !password || !email || !institute) {
+    showToast("Fill all fields");
     return;
   }
 
-  btn.innerText = "Logging in...";
-  btn.disabled = true;
+  const res = await fetch("/signup", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ username, password, email, institute })
+  });
 
-  try {
-    const res = await fetch("/login", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ username, password })
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      localStorage.setItem("user", JSON.stringify(data));
-      window.location = "dashboard.html";
-    } else {
-      alert("Invalid credentials");
-    }
-
-  } catch (err) {
-    alert("Server error");
+  if (!res.ok) {
+    const msg = await res.text();
+    showToast(msg);
+    return;
   }
 
-  btn.innerText = "Login";
-  btn.disabled = false;
+  showToast("Signup submitted for approval");
+
+  switchMode("login");
+  document.getElementById("email").value = "";
 }
 
 </script>

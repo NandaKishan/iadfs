@@ -1,0 +1,89 @@
+[
+  {
+    "name": "RVCE",
+    "domain": "rvce.edu.in",
+    "roles": [
+      "ADMIN",
+      "HOD",
+      "Dean Student Affairs"
+    ],
+    "users": [
+      {
+        "username": "admin",
+        "password": "$2b$10$lSfnLhWZ5ugKA4qoWQAIBu2MYflazEx42lWTC2ArMJiua6lIBZmXy",
+        "role": "ADMIN"
+      },
+      {
+        "username": "test",
+        "password": "$2b$10$XR0bcoSgHTEPa0iv6EO1WOkyOMy7BWwB291hz/JyO.VaAh32nftPK",
+        "role": "Dean Student Affairs"
+      },
+      {
+        "username": "nanda",
+        "password": "$2b$10$y73VhXkfFFpz937DVL3UXupKblbDEzjCxu3lb0Efmd8401drcx856",
+        "role": "USER",
+        "email": "nanda@rvce.edu.in"
+      },
+      {
+        "username": "nanda2",
+        "password": "$2b$10$s2wQnqc32X.a2fCYqZ5CWO.noLV./6X10PWVyxRbJjC19ITveYl5S",
+        "role": "USER",
+        "email": "nanda2@rvce.edu.in"
+      },
+      {
+        "username": "abhishek",
+        "password": "$2b$10$0gN3elktL02SGDBa7u2Yh.J0wK1O45lx2XF.5v14i.liQ3hIZIy6a",
+        "role": "USER",
+        "email": "abhishek@rvce.edu.in"
+      },
+      {
+        "username": "abhishek2",
+        "password": "$2b$10$9O4EopmrCbG1EEP71lJ0NOk6T/KT9caEyjmnk7Pm5OuNdd3iBf.Sa",
+        "role": "USER",
+        "email": "abhisehk2@rvce.edu.in"
+      },
+      {
+        "username": "test123",
+        "password": "$2b$10$14C2HAMPe2VNPTejAuWxGOkqt949YY2R/V6v7qCUbzdbG.eGnVDaO",
+        "role": "Associate Professor",
+        "email": "test123@rvce.edu.in"
+      },
+      {
+        "username": "test4",
+        "password": "$2b$10$mKOeXuk4z29KCVwu739b6.dTyjy6L6EoMuv8HJGQXuqSdsvpWr1Ry",
+        "role": "Professor",
+        "email": "test4@rvce.edu.in"
+      },
+      {
+        "username": "sachin",
+        "password": "$2b$10$W9KIBSrTKpv5irCctQ5FduQ5jFCWyuS4vxoVJ2Wjv3OM1Re7CoQmS",
+        "role": "hod",
+        "email": "sachin@rvce.edu.in"
+      },
+      {
+        "username": "rahul",
+        "password": "$2b$10$ZHnQ8xB/JNg3oOtIy9h8O.S/zB7OJg1Hei7tqLNehPc/0qa/UAN/C",
+        "role": "Associate Professor",
+        "email": "rahul123@rvce.edu.in"
+      },
+      {
+        "username": "test5",
+        "password": "$2b$10$/M9d/UpVOYzdpriYCrYagujwyICRxeqflniFE8QHDt06ltK1Nk5BO",
+        "role": "PENDING",
+        "email": "test5@rvce.edu.in"
+      },
+      {
+        "username": "test7",
+        "password": "$2b$10$x8Zk9wc0uHJvEkZpzufxn.nL2tEj.6O/aniCiuCq1o8x/8Sih9Nt2",
+        "role": "PENDING",
+        "email": "test7@rvce.edu.in"
+      },
+      {
+        "username": "test8",
+        "password": "$2b$10$Z3Nb8EofK7JkQ3.uH8v2VuHZJ90O6kIqlCekLrIx6fODIIsow5ihu",
+        "role": "Associate Professor - PHY",
+        "email": "test8@rvce.edu.in"
+      }
+    ]
+  }
+]
