@@ -5,7 +5,8 @@
     "roles": [
       "ADMIN",
       "HOD",
-      "Dean Student Affairs"
+      "Dean Student Affairs",
+      "my assistant"
     ],
     "users": [
       {
@@ -83,6 +84,23 @@
         "password": "$2b$10$Z3Nb8EofK7JkQ3.uH8v2VuHZJ90O6kIqlCekLrIx6fODIIsow5ihu",
         "role": "Associate Professor - PHY",
         "email": "test8@rvce.edu.in"
+      },
+      {
+        "username": "rushil",
+        "password": "$2b$10$iHXkmQhvJavUEiwVYFhgoOMo8QDzbbO69yDvREId8n1V7QhYT0GJ2",
+        "role": "HOD  Math",
+        "email": "rushil123@rvce.edu.in"
+      },
+      {
+        "username": "tanish",
+        "password": "$2b$10$NspNJ7abZt.O/Mz/KzwPWe8xAZJ77fHRohxLrnk0v6hXiz.3zTxw6",
+        "role": "my assistant"
+      },
+      {
+        "username": "test9",
+        "password": "$2b$10$s4fMmIyI6ODjOxBYuZsMy.2wF9zE3toFjbJTyXXI8d.HMhz/o0c0e",
+        "role": "HOD",
+        "email": "test9@rvce.edu.in"
       }
     ]
   }

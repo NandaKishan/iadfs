@@ -251,3 +251,47 @@ select.input-field {
   font-weight: 800;
   color: #ffffff;
 }
+
+.doc-card {
+  transition: 0.2s ease;
+}
+
+.doc-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0 25px rgba(0,255,255,0.15);
+}
+
+.tab {
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  color: #cbd5f5;
+  border: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.tab.active {
+  background: linear-gradient(90deg,#22c55e,#06b6d4);
+  color: white;
+  box-shadow: 0 0 10px rgba(34,197,94,0.4);
+}
+
+.sideItem {
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  color: #94a3b8;
+  transition: 0.2s;
+}
+
+.sideItem:hover {
+  background: rgba(255,255,255,0.05);
+  color: white;
+}
+
+.sideItem.active {
+  background: linear-gradient(90deg,#22c55e,#06b6d4);
+  color: white;
+}

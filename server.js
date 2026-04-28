@@ -77,7 +77,6 @@ app.post("/login", async (req, res) => {
   const match = await bcrypt.compare(password, user.password);
   if (!match) return res.status(401).send("Wrong password");
 
-  // ✅ TOKEN GENERATED (ADDED)
   const token = jwt.sign(
     {
       username: user.username,
@@ -88,7 +87,7 @@ app.post("/login", async (req, res) => {
     { expiresIn: "2h" }
   );
 
-  res.json({ token }); // ✅ CHANGED OUTPUT ONLY
+  res.json({ token });
 });
 
 
@@ -308,7 +307,12 @@ app.post("/upload", auth, upload.single("file"), (req, res) => {
     type,
     flow: wf ? wf.flow : ["ADMIN"],
     currentStep: 0,
-    status: "Pending"
+    status: "Pending",
+
+    // ✅ ADDED FEATURES
+    rejected: false,
+    rejectionComment: "",
+    signedBy: []
   };
 
   documents.push(doc);
@@ -336,6 +340,11 @@ app.post("/approve", auth, (req, res) => {
 
   documents = documents.map(doc => {
     if (doc.id === id && doc.flow[doc.currentStep] === role) {
+
+      // ✅ E-SIGN ADDED
+      if (!doc.signedBy) doc.signedBy = [];
+      doc.signedBy.push(role);
+
       doc.currentStep++;
 
       if (doc.currentStep >= doc.flow.length) {
@@ -348,6 +357,30 @@ app.post("/approve", auth, (req, res) => {
   fs.writeFileSync("data.json", JSON.stringify(documents, null, 2));
 
   res.send("Approved");
+});
+
+
+// =========================
+// ❌ REJECT DOC (PROTECTED)
+// =========================
+
+app.post("/reject", auth, (req, res) => {
+  const { id, role, comment } = req.body;
+
+  documents = documents.map(doc => {
+    if (doc.id === id && doc.flow[doc.currentStep] === role) {
+
+      doc.status = "Rejected";
+      doc.rejected = true;
+      doc.rejectionComment = comment || "No comment";
+
+    }
+    return doc;
+  });
+
+  fs.writeFileSync("data.json", JSON.stringify(documents, null, 2));
+
+  res.send("Rejected");
 });
 
 

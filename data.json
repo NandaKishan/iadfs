@@ -6,8 +6,11 @@
     "flow": [
       "HOD"
     ],
-    "currentStep": 0,
-    "status": "Pending"
+    "currentStep": 1,
+    "status": "Fully Approved",
+    "signedBy": [
+      "HOD"
+    ]
   },
   {
     "id": 1776940158915,
@@ -18,7 +21,9 @@
       "ADMIN"
     ],
     "currentStep": 0,
-    "status": "Pending"
+    "status": "Rejected",
+    "rejected": true,
+    "rejectionComment": "    abhishek sucks"
   },
   {
     "id": 1777111957219,
@@ -29,7 +34,9 @@
       "ADMIN"
     ],
     "currentStep": 0,
-    "status": "Pending"
+    "status": "Rejected",
+    "rejected": true,
+    "rejectionComment": "bad formatting"
   },
   {
     "id": 1777111958525,
@@ -84,7 +91,9 @@
       "ADMIN"
     ],
     "currentStep": 0,
-    "status": "Pending"
+    "status": "Rejected",
+    "rejected": true,
+    "rejectionComment": "    "
   },
   {
     "id": 1777293074146,
@@ -94,7 +103,24 @@
       "HOD",
       "ADMIN"
     ],
-    "currentStep": 0,
-    "status": "Pending"
+    "currentStep": 1,
+    "status": "Pending",
+    "signedBy": [
+      "HOD"
+    ]
+  },
+  {
+    "id": 1777307723890,
+    "name": "dashboard.png",
+    "type": "leave",
+    "flow": [
+      "HOD",
+      "ADMIN"
+    ],
+    "currentStep": 1,
+    "status": "Pending",
+    "signedBy": [
+      "HOD"
+    ]
   }
 ]
