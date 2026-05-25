@@ -104,10 +104,12 @@
       "ADMIN"
     ],
     "currentStep": 1,
-    "status": "Pending",
+    "status": "Rejected",
     "signedBy": [
       "HOD"
-    ]
+    ],
+    "rejected": true,
+    "rejectionComment": "requires better formatting"
   },
   {
     "id": 1777307723890,
@@ -118,9 +120,25 @@
       "ADMIN"
     ],
     "currentStep": 1,
-    "status": "Pending",
+    "status": "Rejected",
     "signedBy": [
       "HOD"
-    ]
+    ],
+    "rejected": true,
+    "rejectionComment": "   thisnis bad"
+  },
+  {
+    "id": 1777357426197,
+    "name": "style.css",
+    "type": "leave",
+    "flow": [
+      "HOD",
+      "ADMIN"
+    ],
+    "currentStep": 0,
+    "status": "Pending",
+    "rejected": false,
+    "rejectionComment": "",
+    "signedBy": []
   }
 ]

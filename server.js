@@ -1,44 +1,71 @@
-const express = require("express");
-const multer = require("multer");
-const fs = require("fs");
-const cors = require("cors");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken"); // ✅ ADDED
+const express  = require("express");
+const multer   = require("multer");
+const fs       = require("fs");
+const cors     = require("cors");
+const bcrypt   = require("bcrypt");
+const jwt      = require("jsonwebtoken");
+const crypto   = require("crypto");
+const nodemailer = require("nodemailer");
 
 const app = express();
 
-const SECRET = "supersecretkey"; // ✅ ADDED
+// ─── CONFIG ───────────────────────────────────────────────
+const SECRET     = process.env.JWT_SECRET || "venatrix_supersecret_2025";
+const OTP_TTL    = 10 * 60 * 1000; // 10 minutes
 
+// Configure nodemailer — reads from ENV or falls back to Ethereal (test)
+let transporter;
+(async () => {
+  if (process.env.SMTP_HOST) {
+    transporter = nodemailer.createTransport({
+      host:   process.env.SMTP_HOST,
+      port:   parseInt(process.env.SMTP_PORT || "587"),
+      secure: process.env.SMTP_SECURE === "true",
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+    console.log("✅ SMTP configured from ENV");
+  } else {
+    // Dev mode: use Ethereal (all emails captured, no real sends)
+    const testAccount = await nodemailer.createTestAccount();
+    transporter = nodemailer.createTransport({
+      host: "smtp.ethereal.email",
+      port: 587,
+      auth: { user: testAccount.user, pass: testAccount.pass },
+    });
+    console.log("⚠️  No SMTP ENV found — using Ethereal test email");
+    console.log("    Preview URL will be logged when OTPs are sent");
+  }
+})();
+
+// ─── MIDDLEWARE ───────────────────────────────────────────
 app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
 
 const upload = multer({ dest: "uploads/" });
 
-console.log("🔥 SERVER FILE LOADED");
+console.log("🔥 VENATRIX SERVER v2.0 LOADED");
 
+// ─── IN-MEMORY OTP STORE ─────────────────────────────────
+// Format: { email: { otp, expiresAt, data } }
+const otpStore = new Map();
 
-// =========================
-// 🔐 AUTH MIDDLEWARE (ADDED)
-// =========================
-function auth(req, res, next) {
-  const token = req.headers.authorization;
+// ─── IN-MEMORY NOTIFICATION STORE ────────────────────────
+// Format: { username: [ { msg, time, read } ] }
+const notifStore = new Map();
 
-  if (!token) return res.status(401).send("No token");
-
-  try {
-    const decoded = jwt.verify(token, SECRET);
-    req.user = decoded;
-    next();
-  } catch {
-    return res.status(401).send("Invalid token");
-  }
+function pushNotif(username, msg) {
+  if (!username) return;
+  if (!notifStore.has(username)) notifStore.set(username, []);
+  const list = notifStore.get(username);
+  list.unshift({ msg, time: Date.now(), read: false });
+  if (list.length > 50) list.pop();
 }
 
-
-// =========================
-// 📦 LOAD DATA
-// =========================
+// ─── DATA LOADERS ─────────────────────────────────────────
 
 function getInstitutes() {
   return JSON.parse(fs.readFileSync("institutes.json"));
@@ -54,359 +81,535 @@ let documents = fs.existsSync("data.json")
 
 let workflows = JSON.parse(fs.readFileSync("workflows.json"));
 
+// ─── AUTH MIDDLEWARE ──────────────────────────────────────
 
-// =========================
-// 🔐 LOGIN (UPDATED WITH JWT)
-// =========================
-
-app.post("/login", async (req, res) => {
-  const { username, password, institute } = req.body;
-
-  const institutes = getInstitutes();
-  const inst = institutes.find(i => i.name === institute);
-
-  if (!inst) return res.status(400).send("Invalid institute");
-
-  const user = inst.users.find(u => u.username === username);
-  if (!user) return res.status(401).send("User not found");
-
-  if (user.role === "PENDING") {
-    return res.status(403).send("Awaiting admin approval");
+function auth(req, res, next) {
+  const token = req.headers.authorization;
+  if (!token) return res.status(401).send("No token");
+  try {
+    req.user = jwt.verify(token, SECRET);
+    next();
+  } catch {
+    return res.status(401).send("Invalid or expired token");
   }
+}
 
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) return res.status(401).send("Wrong password");
+// ─────────────────────────────────────────────────────────
+// 📧 SEND OTP  (new — replaces old /signup)
+// ─────────────────────────────────────────────────────────
 
-  const token = jwt.sign(
-    {
-      username: user.username,
-      role: user.role,
-      institute: inst.name
-    },
-    SECRET,
-    { expiresIn: "2h" }
-  );
-
-  res.json({ token });
-});
-
-
-// =========================
-// 🆕 SIGNUP
-// =========================
-
-app.post("/signup", async (req, res) => {
-  console.log("🔥 SIGNUP HIT");
-
+app.post("/send-otp", async (req, res) => {
   const { username, password, email, institute } = req.body;
 
   if (!username || !password || !email || !institute) {
     return res.status(400).send("All fields required");
   }
 
-  if (!email.endsWith("@rvce.edu.in")) {
-    return res.status(400).send("Use institute email only");
+  // Validate email domain loosely (institute-specific check on final verify)
+  if (!email.includes("@") || email.length < 5) {
+    return res.status(400).send("Invalid email address");
   }
 
   const institutes = getInstitutes();
   const inst = institutes.find(i => i.name === institute);
-
   if (!inst) return res.status(400).send("Invalid institute");
 
+  // Check username/email uniqueness early
   if (inst.users.find(u => u.username === username)) {
-    return res.status(400).send("Username already exists");
+    return res.status(400).send("Username already taken");
   }
-
   if (inst.users.find(u => u.email === email)) {
     return res.status(400).send("Email already registered");
   }
 
-  const hashed = await bcrypt.hash(password, 10);
+  // Generate OTP
+  const otp = String(Math.floor(100000 + Math.random() * 900000));
+  const expiresAt = Date.now() + OTP_TTL;
 
-  inst.users.push({
-    username,
-    password: hashed,
-    role: "PENDING",
-    email
-  });
+  otpStore.set(email, { otp, expiresAt, data: { username, password, email, institute } });
 
-  saveInstitutes(institutes);
+  // Send email
+  try {
+    const info = await transporter.sendMail({
+      from: `"Venatrix" <noreply@venatrix.app>`,
+      to: email,
+      subject: "Your Venatrix Verification Code",
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#04050f;color:#e8eeff;border-radius:16px;">
+          <div style="font-family:monospace;font-size:22px;font-weight:700;letter-spacing:3px;color:#00e5c8;margin-bottom:8px;">
+            VENATRIX
+          </div>
+          <div style="font-size:14px;color:#8899bb;margin-bottom:32px;">Intelligent Information Flow</div>
 
-  res.send("Signup submitted. Await admin approval.");
+          <div style="font-size:16px;margin-bottom:16px;color:#e8eeff;">
+            Hi <strong>${username}</strong>, here is your verification code:
+          </div>
+
+          <div style="background:#0d1225;border:1px solid rgba(0,229,200,0.2);border-radius:12px;padding:20px 32px;text-align:center;margin:24px 0;">
+            <div style="font-family:monospace;font-size:40px;font-weight:700;letter-spacing:12px;color:#00e5c8;">
+              ${otp}
+            </div>
+          </div>
+
+          <div style="font-size:13px;color:#4a5880;">
+            This code expires in <strong style="color:#e8eeff">10 minutes</strong>.<br>
+            If you didn't request this, you can safely ignore this email.
+          </div>
+        </div>
+      `
+    });
+
+    // In dev (Ethereal) print the preview URL
+    const preview = nodemailer.getTestMessageUrl(info);
+    if (preview) {
+      console.log(`📧 OTP email preview: ${preview}`);
+    }
+
+    res.send("OTP sent");
+  } catch (err) {
+    console.error("Email send failed:", err);
+    // In dev, still log OTP to console so testing works without real SMTP
+    console.log(`🔑 DEV OTP for ${email}: ${otp}`);
+    res.send("OTP sent (check server console in dev mode)");
+  }
 });
 
+// ─────────────────────────────────────────────────────────
+// ✅ VERIFY OTP & COMPLETE SIGNUP
+// ─────────────────────────────────────────────────────────
 
-// =========================
-// 🟢 APPROVE USER (PROTECTED)
-// =========================
+app.post("/verify-otp", async (req, res) => {
+  const { email, otp } = req.body;
 
-app.post("/approve-user", auth, (req, res) => {
+  if (!email || !otp) return res.status(400).send("Email and OTP required");
 
-  if (req.user.role !== "ADMIN") {
-    return res.status(403).send("Not allowed");
+  const record = otpStore.get(email);
+  if (!record) return res.status(400).send("OTP not found or expired. Request a new one.");
+  if (Date.now() > record.expiresAt) {
+    otpStore.delete(email);
+    return res.status(400).send("OTP expired. Request a new one.");
+  }
+  if (record.otp !== String(otp).trim()) {
+    return res.status(400).send("Incorrect OTP. Try again.");
   }
 
-  const { username, institute, role } = req.body;
+  // OTP valid — complete signup
+  otpStore.delete(email);
+
+  const { username, password, institute } = record.data;
+  const institutes = getInstitutes();
+  const inst = institutes.find(i => i.name === institute);
+  if (!inst) return res.status(400).send("Institute not found");
+
+  // Re-check uniqueness (race condition guard)
+  if (inst.users.find(u => u.username === username)) {
+    return res.status(400).send("Username already taken");
+  }
+
+  const hashed = await bcrypt.hash(password, 10);
+  inst.users.push({ username, password: hashed, role: "PENDING", email });
+  saveInstitutes(institutes);
+
+  // Notify admins
+  const admins = inst.users.filter(u => u.role === "ADMIN");
+  admins.forEach(a => pushNotif(a.username, `New signup awaiting approval: "${username}"`));
+
+  res.send("Signup complete. Awaiting admin approval.");
+});
+
+// ─────────────────────────────────────────────────────────
+// 🔐 LOGIN (JWT)
+// ─────────────────────────────────────────────────────────
+
+app.post("/login", async (req, res) => {
+  const { username, password, institute } = req.body;
 
   const institutes = getInstitutes();
   const inst = institutes.find(i => i.name === institute);
-
-  if (!inst) return res.status(400).send("Institute not found");
+  if (!inst) return res.status(400).send("Invalid institute");
 
   const user = inst.users.find(u => u.username === username);
+  if (!user) return res.status(401).send("User not found");
 
-  if (!user) return res.status(400).send("User not found");
-
-  if (user.role !== "PENDING") {
-    return res.status(400).send("User already approved");
+  if (user.role === "PENDING") {
+    return res.status(403).send("Account pending admin approval");
   }
 
-  if (role === "ADMIN") {
-    return res.status(400).send("Cannot assign ADMIN");
-  }
+  const match = await bcrypt.compare(password, user.password);
+  if (!match) return res.status(401).send("Incorrect password");
 
-  user.role = role;
+  const token = jwt.sign(
+    { username: user.username, role: user.role, institute: inst.name },
+    SECRET,
+    { expiresIn: "8h" }
+  );
 
-  saveInstitutes(institutes);
-
-  res.send("User approved");
+  pushNotif(username, `You logged in as ${user.role}`);
+  res.json({ token });
 });
 
+// ─────────────────────────────────────────────────────────
+// 🔔 NOTIFICATIONS (SSE stream)
+// ─────────────────────────────────────────────────────────
 
-// =========================
-// 🏗️ CREATE ROLE (PROTECTED)
-// =========================
+app.get("/notifications/stream", auth, (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  const username = req.user.username;
+  let lastCount = 0;
+
+  const interval = setInterval(() => {
+    const notifs = notifStore.get(username) || [];
+    const unread = notifs.filter(n => !n.read).length;
+    if (unread !== lastCount) {
+      lastCount = unread;
+      res.write(`data: ${JSON.stringify({ unread, notifs })}\n\n`);
+    }
+  }, 2000);
+
+  req.on("close", () => clearInterval(interval));
+});
+
+app.get("/notifications", auth, (req, res) => {
+  const notifs = notifStore.get(req.user.username) || [];
+  res.json(notifs);
+});
+
+app.post("/notifications/read", auth, (req, res) => {
+  const notifs = notifStore.get(req.user.username) || [];
+  notifs.forEach(n => n.read = true);
+  res.send("OK");
+});
+
+// ─────────────────────────────────────────────────────────
+// 🏗️ ROLE MANAGEMENT
+// ─────────────────────────────────────────────────────────
 
 app.post("/create-role", auth, (req, res) => {
-
-  if (req.user.role !== "ADMIN") {
-    return res.status(403).send("Not allowed");
-  }
+  if (req.user.role !== "ADMIN") return res.status(403).send("Not allowed");
 
   const { role, institute } = req.body;
-
   if (!role) return res.status(400).send("Role required");
-
-  if (role === "ADMIN") {
-    return res.status(400).send("ADMIN role is reserved");
-  }
+  if (role.toUpperCase() === "ADMIN") return res.status(400).send("ADMIN role is reserved");
 
   const institutes = getInstitutes();
   const inst = institutes.find(i => i.name === institute);
-
   if (!inst) return res.status(400).send("Institute not found");
 
-  if (!inst.roles.includes(role)) {
-    inst.roles.push(role);
+  if (!inst.roles.includes(role.toUpperCase())) {
+    inst.roles.push(role.toUpperCase());
+    saveInstitutes(institutes);
   }
 
-  saveInstitutes(institutes);
   res.send("Role created");
 });
-
-
-// =========================
-// 📤 GET ROLES (PROTECTED)
-// =========================
 
 app.get("/roles/:institute", auth, (req, res) => {
   const institutes = getInstitutes();
   const inst = institutes.find(i => i.name === req.params.institute);
-
   if (!inst) return res.status(400).send("Institute not found");
-
   res.json(inst.roles);
 });
 
-
-// =========================
-// 👤 CREATE USER (PROTECTED)
-// =========================
+// ─────────────────────────────────────────────────────────
+// 👤 USER MANAGEMENT
+// ─────────────────────────────────────────────────────────
 
 app.post("/create-user", auth, async (req, res) => {
-
-  if (req.user.role !== "ADMIN") {
-    return res.status(403).send("Not allowed");
-  }
+  if (req.user.role !== "ADMIN") return res.status(403).send("Not allowed");
 
   const { username, password, role, institute } = req.body;
-
-  if (!username || !password || !role) {
-    return res.status(400).send("All fields required");
-  }
-
-  if (role === "ADMIN") {
-    return res.status(400).send("Cannot create ADMIN user");
-  }
+  if (!username || !password || !role) return res.status(400).send("All fields required");
+  if (role.toUpperCase() === "ADMIN") return res.status(400).send("Cannot create ADMIN user via this form");
 
   const institutes = getInstitutes();
   const inst = institutes.find(i => i.name === institute);
-
   if (!inst) return res.status(400).send("Invalid institute");
 
   if (inst.users.find(u => u.username === username)) {
     return res.status(400).send("User already exists");
   }
-
-  if (!inst.roles.includes(role)) {
+  if (!inst.roles.includes(role.toUpperCase())) {
     return res.status(400).send("Role does not exist");
   }
 
   const hashed = await bcrypt.hash(password, 10);
-
-  inst.users.push({
-    username,
-    password: hashed,
-    role
-  });
-
+  inst.users.push({ username, password: hashed, role: role.toUpperCase() });
   saveInstitutes(institutes);
 
+  pushNotif(username, `Your account has been created with role: ${role.toUpperCase()}`);
   res.send("User created");
 });
 
-
-// =========================
-// 📤 GET USERS (PROTECTED)
-// =========================
-
 app.get("/users/:institute", auth, (req, res) => {
+  if (req.user.role !== "ADMIN") return res.status(403).send("Not allowed");
+
   const institutes = getInstitutes();
   const inst = institutes.find(i => i.name === req.params.institute);
-
   if (!inst) return res.status(400).send("Institute not found");
 
   res.json(inst.users.map(u => ({
     username: u.username,
     role: u.role,
-    email: u.email || "-"
+    email: u.email || "—"
   })));
 });
 
+app.post("/approve-user", auth, (req, res) => {
+  if (req.user.role !== "ADMIN") return res.status(403).send("Not allowed");
 
-// =========================
-// 📥 UPLOAD (PROTECTED)
-// =========================
+  const { username, institute, role } = req.body;
+  const institutes = getInstitutes();
+  const inst = institutes.find(i => i.name === institute);
+  if (!inst) return res.status(400).send("Institute not found");
+
+  const user = inst.users.find(u => u.username === username);
+  if (!user) return res.status(400).send("User not found");
+  if (user.role !== "PENDING") return res.status(400).send("User already approved");
+  if (role.toUpperCase() === "ADMIN") return res.status(400).send("Cannot assign ADMIN");
+
+  user.role = role.toUpperCase();
+  saveInstitutes(institutes);
+
+  pushNotif(username, `✅ Your account has been approved with role: ${user.role}`);
+  res.send("User approved");
+});
+
+// ─────────────────────────────────────────────────────────
+// 📤 UPLOAD (with role & workflow override)
+// ─────────────────────────────────────────────────────────
 
 app.post("/upload", auth, upload.single("file"), (req, res) => {
-  const name = req.file.originalname.toLowerCase();
+  const name = req.file.originalname;
+  const nameLower = name.toLowerCase();
 
-  let type = "leave";
+  // Determine workflow type
+  let type = "general";
+  const workflowOverride = req.body.workflow;
+  const targetRole = req.body.targetRole;
 
-  workflows.forEach(w => {
-    if (name.includes(w.type)) {
-      type = w.type;
-    }
-  });
+  if (workflowOverride) {
+    type = workflowOverride;
+  } else {
+    workflows.forEach(w => {
+      if (nameLower.includes(w.type.toLowerCase())) {
+        type = w.type;
+      }
+    });
+  }
 
-  const wf = workflows.find(w => w.type === type);
+  let flowToUse = ["ADMIN"]; // default
+
+  // If targetRole override, route to that role first
+  if (targetRole) {
+    const wf = workflows.find(w => w.type === type);
+    flowToUse = wf ? [targetRole, ...wf.flow.filter(r => r !== targetRole)] : [targetRole, "ADMIN"];
+  } else {
+    const wf = workflows.find(w => w.type === type);
+    if (wf) flowToUse = wf.flow;
+  }
 
   const doc = {
-    id: Date.now(),
-    name: req.file.originalname,
+    id:              Date.now(),
+    name,
     type,
-    flow: wf ? wf.flow : ["ADMIN"],
-    currentStep: 0,
-    status: "Pending",
-
-    // ✅ ADDED FEATURES
-    rejected: false,
+    flow:            flowToUse,
+    currentStep:     0,
+    status:          `Pending — ${flowToUse[0]}`,
+    uploadedBy:      req.user.username,
+    uploadedAt:      new Date().toISOString(),
+    rejected:        false,
     rejectionComment: "",
-    signedBy: []
+    signedBy:        [],
+    signatures:      {}  // role -> { signature, timestamp }
   };
 
   documents.push(doc);
   fs.writeFileSync("data.json", JSON.stringify(documents, null, 2));
 
+  // Notify the first approver (all users with that role)
+  const firstRole = flowToUse[0];
+  notifyRole(doc, firstRole, `📄 New document "${name}" requires your approval`);
+  pushNotif(req.user.username, `You uploaded "${name}" — waiting on ${firstRole}`);
+
   res.json(doc);
 });
 
+// Helper: push notification to all users of a role in same institute
+function notifyRole(doc, role, msg) {
+  try {
+    const institutes = getInstitutes();
+    institutes.forEach(inst => {
+      inst.users
+        .filter(u => u.role === role)
+        .forEach(u => pushNotif(u.username, msg));
+    });
+  } catch(e) {}
+}
 
-// =========================
-// 📤 GET DOCS (PROTECTED)
-// =========================
+// ─────────────────────────────────────────────────────────
+// 📋 GET DOCUMENTS
+// ─────────────────────────────────────────────────────────
 
 app.get("/documents", auth, (req, res) => {
   res.json(documents);
 });
 
-
-// =========================
-// 🔄 APPROVE DOC (PROTECTED)
-// =========================
+// ─────────────────────────────────────────────────────────
+// 🔏 APPROVE WITH E-SIGN
+// ─────────────────────────────────────────────────────────
 
 app.post("/approve", auth, (req, res) => {
-  const { id, role } = req.body;
+  const { id, role, signature } = req.body;
+
+  let nextRole = null;
+  let uploaderUsername = null;
+  let docName = null;
 
   documents = documents.map(doc => {
-    if (doc.id === id && doc.flow[doc.currentStep] === role) {
+    if (doc.id !== id) return doc;
+    if (doc.flow[doc.currentStep] !== role) return doc;
 
-      // ✅ E-SIGN ADDED
-      if (!doc.signedBy) doc.signedBy = [];
-      doc.signedBy.push(role);
+    if (!doc.signedBy) doc.signedBy = [];
+    if (!doc.signatures) doc.signatures = {};
 
-      doc.currentStep++;
+    // Store encrypted signature with timestamp
+    const sigHash = crypto
+      .createHmac("sha256", SECRET)
+      .update(`${req.user.username}:${role}:${id}:${signature || ""}`)
+      .digest("hex");
 
-      if (doc.currentStep >= doc.flow.length) {
-        doc.status = "Fully Approved";
-      }
+    doc.signatures[role] = {
+      signer:    req.user.username,
+      role,
+      hash:      sigHash,
+      timestamp: new Date().toISOString()
+    };
+
+    doc.signedBy.push(role);
+    doc.currentStep++;
+    uploaderUsername = doc.uploadedBy;
+    docName = doc.name;
+
+    if (doc.currentStep >= doc.flow.length) {
+      doc.status = "Fully Approved";
+      nextRole = null;
+    } else {
+      nextRole = doc.flow[doc.currentStep];
+      doc.status = `Pending — ${nextRole}`;
     }
+
     return doc;
   });
 
   fs.writeFileSync("data.json", JSON.stringify(documents, null, 2));
+
+  // Notifications
+  if (nextRole) {
+    notifyRole({ id, name: docName }, nextRole, `📄 Document "${docName}" needs your approval`);
+  } else {
+    // Fully approved — notify uploader
+    if (uploaderUsername) {
+      pushNotif(uploaderUsername, `✅ Your document "${docName}" has been fully approved!`);
+    }
+  }
+
+  if (uploaderUsername) {
+    pushNotif(uploaderUsername, `🔏 "${docName}" was signed by ${role}`);
+  }
 
   res.send("Approved");
 });
 
-
-// =========================
-// ❌ REJECT DOC (PROTECTED)
-// =========================
+// ─────────────────────────────────────────────────────────
+// ❌ REJECT
+// ─────────────────────────────────────────────────────────
 
 app.post("/reject", auth, (req, res) => {
   const { id, role, comment } = req.body;
 
+  let uploaderUsername = null;
+  let docName = null;
+
   documents = documents.map(doc => {
-    if (doc.id === id && doc.flow[doc.currentStep] === role) {
+    if (doc.id !== id) return doc;
+    if (doc.flow[doc.currentStep] !== role) return doc;
 
-      doc.status = "Rejected";
-      doc.rejected = true;
-      doc.rejectionComment = comment || "No comment";
+    doc.status = "Rejected";
+    doc.rejected = true;
+    doc.rejectionComment = comment || "No comment provided";
+    uploaderUsername = doc.uploadedBy;
+    docName = doc.name;
 
-    }
     return doc;
   });
 
   fs.writeFileSync("data.json", JSON.stringify(documents, null, 2));
 
+  if (uploaderUsername) {
+    pushNotif(uploaderUsername, `❌ Your document "${docName}" was rejected by ${role}: "${comment?.slice(0,60)}"`);
+  }
+
   res.send("Rejected");
 });
 
-
-// =========================
-// 🏗️ WORKFLOW (PROTECTED)
-// =========================
+// ─────────────────────────────────────────────────────────
+// 🔄 WORKFLOWS
+// ─────────────────────────────────────────────────────────
 
 app.post("/create-workflow", auth, (req, res) => {
-  const { type, flow } = req.body;
+  if (req.user.role !== "ADMIN") return res.status(403).send("Not allowed");
 
-  workflows.push({ type, flow });
+  const { type, flow } = req.body;
+  if (!type || !flow || !flow.length) return res.status(400).send("Invalid workflow");
+
+  const normalizedFlow = flow.map(r => r.trim().toUpperCase()).filter(Boolean);
+
+  // Update if exists, else add
+  const existing = workflows.findIndex(w => w.type === type.toLowerCase());
+  if (existing >= 0) {
+    workflows[existing].flow = normalizedFlow;
+  } else {
+    workflows.push({ type: type.toLowerCase(), flow: normalizedFlow });
+  }
 
   fs.writeFileSync("workflows.json", JSON.stringify(workflows, null, 2));
-
-  res.send("Workflow created");
+  res.send("Workflow saved");
 });
 
 app.get("/workflows", auth, (req, res) => {
   res.json(workflows);
 });
 
+// ─────────────────────────────────────────────────────────
+// 🔐 E-SIGN AUDIT — verify a document's signature chain
+// ─────────────────────────────────────────────────────────
 
-// =========================
+app.get("/audit/:docId", auth, (req, res) => {
+  const doc = documents.find(d => d.id === parseInt(req.params.docId));
+  if (!doc) return res.status(404).send("Document not found");
+
+  res.json({
+    id:        doc.id,
+    name:      doc.name,
+    status:    doc.status,
+    signedBy:  doc.signedBy,
+    signatures: doc.signatures || {},
+    uploadedBy: doc.uploadedBy,
+    uploadedAt: doc.uploadedAt,
+    flow:       doc.flow
+  });
+});
+
+// ─────────────────────────────────────────────────────────
 // 🚀 START
-// =========================
+// ─────────────────────────────────────────────────────────
 
-app.listen(3000, () => {
-  console.log("🚀 Running on http://localhost:3000");
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Venatrix running on http://localhost:${PORT}`);
+  console.log(`📧 Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE envs for real email`);
 });

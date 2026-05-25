@@ -101,6 +101,12 @@
         "password": "$2b$10$s4fMmIyI6ODjOxBYuZsMy.2wF9zE3toFjbJTyXXI8d.HMhz/o0c0e",
         "role": "HOD",
         "email": "test9@rvce.edu.in"
+      },
+      {
+        "username": "sushmitha",
+        "password": "$2b$10$LFWJzEVEmImF79GTypzL4.2kWAS/FyuqU6fJCMxtqnjvkFDBOUDja",
+        "role": "Professor",
+        "email": "abc@rvce.edu.in"
       }
     ]
   }

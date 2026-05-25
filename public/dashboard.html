@@ -1,260 +1,858 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Venatrix Dashboard</title>
-  <link rel="icon" type="image/png" sizes="32x32" href="dashboard.png">
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Venatrix — Dashboard</title>
+  <link rel="icon" type="image/png" href="spider.png">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* dashboard-local overrides */
+    body { overflow: hidden; }
+
+    #app { display: flex; height: 100vh; }
+
+    /* notification popover */
+    #notif-panel {
+      position: fixed;
+      top: 0; right: 0;
+      width: 340px;
+      height: 100vh;
+      background: var(--bg-deep);
+      border-left: 1px solid var(--border-subtle);
+      z-index: 500;
+      transform: translateX(100%);
+      transition: transform 0.4s var(--ease-smooth);
+      display: flex;
+      flex-direction: column;
+    }
+    #notif-panel.open { transform: translateX(0); }
+    .notif-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .notif-title { font-size: 16px; font-weight: 700; }
+    .notif-list { flex: 1; overflow-y: auto; padding: 12px; }
+    .notif-item {
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 8px;
+      animation: card-in 0.3s var(--ease-out) both;
+      transition: all 0.25s;
+    }
+    .notif-item:hover { border-color: rgba(0,229,200,0.2); }
+    .notif-item.unread { border-left: 2px solid var(--accent-teal); }
+    .notif-text { font-size: 13px; line-height: 1.5; }
+    .notif-time { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 5px; }
+    .notif-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-teal); flex-shrink: 0; }
+
+    /* nav item notification position */
+    .nav-item { position: relative; }
+
+    /* file upload preview */
+    .file-preview {
+      padding: 12px 16px;
+      background: var(--bg-elevated);
+      border: 1px solid rgba(0,229,200,0.2);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent-teal);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    /* e-sign PIN input area */
+    .esign-wrap {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin-top: 8px;
+    }
+
+    .esign-hash {
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent-teal);
+      background: rgba(0,229,200,0.05);
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      word-break: break-all;
+      margin-top: 8px;
+      opacity: 0.7;
+    }
+
+    /* workflow list in admin */
+    #workflowList .workflow-item:nth-child(odd) { animation-delay: 0.05s; }
+    #workflowList .workflow-item:nth-child(even) { animation-delay: 0.1s; }
+
+    /* stagger doc cards */
+    .doc-grid .doc-card:nth-child(1) { animation-delay: 0.04s; }
+    .doc-grid .doc-card:nth-child(2) { animation-delay: 0.08s; }
+    .doc-grid .doc-card:nth-child(3) { animation-delay: 0.12s; }
+    .doc-grid .doc-card:nth-child(4) { animation-delay: 0.16s; }
+    .doc-grid .doc-card:nth-child(5) { animation-delay: 0.20s; }
+    .doc-grid .doc-card:nth-child(6) { animation-delay: 0.24s; }
+
+    .sidebar-bell { position: relative; display: inline-flex; }
+  </style>
 </head>
 
 <body>
+<div id="app">
 
-<!-- 🔥 TOAST -->
-<div id="toast" style="
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: rgba(15,23,42,0.9);
-  color: white;
-  padding: 12px 18px;
-  border-radius: 10px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.5);
-  display: none;
-  z-index: 999;
-  font-size: 14px;
-"></div>
+  <!-- ═══════ SIDEBAR ═══════ -->
+  <nav class="sidebar" id="sidebar">
 
-<!-- 🔥 NAVBAR -->
-<div class="navbar">
-  <div class="brand">
-    <img src="spider.png" alt="Venatrix Logo">
-    <div class="brand-text">
-      <h2>VENATRIX</h2>
-      <span>Intelligent Information Flow</span>
+    <div class="sidebar-brand">
+      <div class="logo-wrap">
+        <img src="spider.png" alt="Venatrix">
+        <div>
+          <div class="brand-name">VENATRIX</div>
+          <div class="brand-sub">Intelligent Info Flow</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="userChip" class="user-chip">
+      <div class="user-avatar" id="userAvatar">?</div>
+      <div class="user-info">
+        <div class="user-name" id="userName">—</div>
+        <div class="user-role" id="userRole">—</div>
+      </div>
+    </div>
+
+    <div class="nav-section-label">Navigation</div>
+    <div class="nav-items" id="navItems">
+
+      <div class="nav-item active" data-tab="documents" onclick="switchTab('documents', this)">
+        <span class="nav-icon">📄</span>
+        <span class="nav-label">Documents</span>
+      </div>
+
+      <div class="nav-item" data-tab="upload" onclick="switchTab('upload', this)">
+        <span class="nav-icon">⬆️</span>
+        <span class="nav-label">Upload</span>
+      </div>
+
+      <div class="nav-item" data-tab="users" onclick="switchTab('users', this)" id="navUsers" style="display:none;">
+        <span class="nav-icon">👥</span>
+        <span class="nav-label">Users</span>
+      </div>
+
+      <div class="nav-item" data-tab="admin" onclick="switchTab('admin', this)" id="navAdmin" style="display:none;">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Admin</span>
+      </div>
+
+      <div class="nav-item sidebar-bell" onclick="toggleNotifPanel()">
+        <span class="nav-icon">🔔</span>
+        <span class="nav-label">Notifications</span>
+        <span id="notifBadge" class="notif-badge" style="display:none;">0</span>
+      </div>
+
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="logout()">
+        <span>⏻</span> Sign Out
+      </button>
+    </div>
+  </nav>
+
+  <!-- ═══════ MAIN ═══════ -->
+  <main class="main-content" id="mainContent">
+
+    <!-- ── DOCUMENTS ── -->
+    <div id="section-documents" class="section active">
+      <div class="page-header">
+        <div class="header-row">
+          <div>
+            <div class="page-title">Documents</div>
+            <div class="page-subtitle">Track and manage all document workflows</div>
+          </div>
+          <div class="page-actions">
+            <select id="filterStatus" onchange="load()" style="width:auto;margin:0;padding:8px 14px;font-size:13px;">
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:24px 32px;">
+        <div class="stats-grid">
+          <div class="stat-card pending">
+            <div class="stat-label">Pending</div>
+            <div class="stat-value" id="pendingCount">0</div>
+            <div class="stat-icon">⏳</div>
+          </div>
+          <div class="stat-card approved">
+            <div class="stat-label">Approved</div>
+            <div class="stat-value" id="approvedCount">0</div>
+            <div class="stat-icon">✅</div>
+          </div>
+          <div class="stat-card rejected">
+            <div class="stat-label">Rejected</div>
+            <div class="stat-value" id="rejectedCount">0</div>
+            <div class="stat-icon">❌</div>
+          </div>
+        </div>
+
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Search documents by name…" oninput="load()">
+        </div>
+
+        <div id="list" class="doc-grid">
+          <div class="skeleton"></div>
+          <div class="skeleton"></div>
+          <div class="skeleton"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── UPLOAD ── -->
+    <div id="section-upload" class="section">
+      <div class="page-header">
+        <div class="header-row">
+          <div>
+            <div class="page-title">Upload Document</div>
+            <div class="page-subtitle">Route a document to a specific workflow</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:24px 32px; max-width:560px;">
+        <div class="panel">
+          <div class="panel-title">
+            <div class="panel-icon">📤</div>
+            New Document
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Document File</label>
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('file').click()" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+              <div class="upload-icon">📂</div>
+              <div class="upload-label">Drop file here or click to browse</div>
+              <div class="upload-sublabel">PDF, DOCX, PNG, JPG supported</div>
+            </div>
+            <input type="file" id="file" onchange="previewFile(event)">
+            <div class="file-preview" id="filePreview">
+              <span>📎</span>
+              <span id="filePreviewName"></span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Assign to Workflow</label>
+            <select id="uploadWorkflow">
+              <option value="" disabled selected>Auto-detect from filename…</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Assign to Role (Override)</label>
+            <select id="uploadRole">
+              <option value="">No override — use workflow</option>
+            </select>
+          </div>
+
+          <button class="btn btn-primary btn-full" onclick="upload()" style="margin-top:8px;">
+            ⬆️ Upload Document
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── USERS ── -->
+    <div id="section-users" class="section">
+      <div class="page-header">
+        <div class="header-row">
+          <div>
+            <div class="page-title">Users</div>
+            <div class="page-subtitle">Manage users and roles</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:24px 32px;">
+        <div class="panels-grid">
+
+          <div class="panel">
+            <div class="panel-title">
+              <div class="panel-icon">🎭</div>
+              Role Management
+            </div>
+            <div class="form-group">
+              <label class="form-label">New Role Name</label>
+              <input id="roleInput" class="input-field" placeholder="e.g. HOD, DEAN, REGISTRAR">
+            </div>
+            <button class="btn btn-primary" onclick="createRole()">Add Role</button>
+
+            <div style="margin-top:20px;">
+              <div class="form-label" style="margin-bottom:8px;">Existing Roles</div>
+              <div id="roleList" class="roles-wrap"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">
+              <div class="panel-icon">➕</div>
+              Create User
+            </div>
+            <div class="form-group">
+              <label class="form-label">Username</label>
+              <input id="newUser" class="input-field" placeholder="Username">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input id="newPass" type="password" class="input-field" placeholder="Password">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Role</label>
+              <select id="roleSelect" class="input-field">
+                <option value="" disabled selected>Select Role</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="createUser()">Create User</button>
+          </div>
+
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">
+            <div class="panel-icon">👥</div>
+            All Users
+          </div>
+          <div id="userList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ADMIN ── -->
+    <div id="section-admin" class="section">
+      <div class="page-header">
+        <div class="header-row">
+          <div>
+            <div class="page-title">Admin Panel</div>
+            <div class="page-subtitle">Configure workflows and system settings</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:24px 32px;">
+        <div class="panels-grid">
+
+          <div class="panel">
+            <div class="panel-title">
+              <div class="panel-icon">🔄</div>
+              Create Workflow
+            </div>
+            <div class="form-group">
+              <label class="form-label">Document Type</label>
+              <input id="type" class="input-field" placeholder="e.g. internship, leave, noc">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Approval Flow (comma-separated)</label>
+              <input id="flow" class="input-field" placeholder="HOD,DEAN,ADMIN">
+            </div>
+            <button class="btn btn-primary" onclick="createWorkflow()">Create Workflow</button>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">
+              <div class="panel-icon">📋</div>
+              Active Workflows
+            </div>
+            <div id="workflowList"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+</div><!-- /app -->
+
+<!-- ═══════ NOTIFICATION PANEL ═══════ -->
+<div id="notif-panel">
+  <div class="notif-header">
+    <div class="notif-title">🔔 Notifications</div>
+    <button class="btn btn-ghost btn-sm" onclick="toggleNotifPanel()">✕</button>
+  </div>
+  <div class="notif-list" id="notifList"></div>
+</div>
+
+<!-- ═══════ REJECT MODAL ═══════ -->
+<div id="rejectModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">Reject Document</div>
+    <div class="modal-subtitle">This action will notify the uploader and halt the workflow.</div>
+    <div class="form-group">
+      <label class="form-label">Rejection Reason</label>
+      <textarea id="rejectInput" placeholder="Describe why this document is being rejected…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeRejectModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="submitReject()">Reject Document</button>
     </div>
   </div>
+</div>
 
-  <div style="display:flex; gap:15px; align-items:center;">
-    <span id="role" class="role"></span>
-    <button onclick="logout()" style="background:#ef4444;">Logout</button>
+<!-- ═══════ E-SIGN MODAL ═══════ -->
+<div id="esignModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">🔏 E-Sign Document</div>
+    <div class="modal-subtitle">Enter your secure PIN to cryptographically sign this document.</div>
+    <div class="form-group">
+      <label class="form-label">Signing PIN</label>
+      <input type="password" id="esignPin" class="input-field" placeholder="Enter your signing PIN" maxlength="20">
+    </div>
+    <div id="esignHashPreview" class="esign-hash" style="display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeEsignModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitEsign()">Sign & Approve</button>
+    </div>
   </div>
 </div>
 
-<div id="layout" style="display:flex;">
-
-  <!-- 🔥 SIDEBAR -->
-  <div id="sidebar" style="
-    width:220px;
-    padding:20px;
-    border-right:1px solid rgba(255,255,255,0.05);
-  ">
-
-    <div class="sideItem active" onclick="switchTab('documents')">📄 Documents</div>
-    <div class="sideItem" onclick="switchTab('users')">👥 Users</div>
-    <div id="adminSide" class="sideItem" onclick="switchTab('admin')">⚙️ Admin</div>
-    <div class="sideItem" onclick="switchTab('upload')">⬆️ Upload</div>
-
-  </div>
-
-  <!-- 🔥 MAIN CONTENT -->
-  <div style="flex:1; padding:20px;">
-
-<div id="tabs" style="
-  display:flex;
-  gap:10px;
-  padding:15px 20px;
-">
-
-  <button onclick="switchTab('documents')" class="tab active">Documents</button>
-  <button onclick="switchTab('users')" class="tab">Users</button>
-  <button id="adminTab" onclick="switchTab('admin')" class="tab">Admin</button>
-  <button onclick="switchTab('upload')" class="tab">Upload</button>
-
-</div>
-
-<div style="
-  display:flex;
-  gap:15px;
-  padding:15px 20px;
-">
-
-  <div class="card" style="flex:1;text-align:center;">
-    <h4 id="pendingCount">0</h4>
-    <span style="color:#fbbf24;">Pending</span>
-  </div>
-
-  <div class="card" style="flex:1;text-align:center;">
-    <h4 id="approvedCount">0</h4>
-    <span style="color:#22c55e;">Approved</span>
-  </div>
-
-  <div class="card" style="flex:1;text-align:center;">
-    <h4 id="rejectedCount">0</h4>
-    <span style="color:#ef4444;">Rejected</span>
-  </div>
-
-</div>
-
-<!-- 🔥 MAIN -->
-<div class="container">
-
-  <div id="uploadSection">
-  <div class="card">
-    <h3>Upload Document</h3>
-    <input type="file" id="file">
-    <button onclick="upload()">Upload</button>
-  </div>
-  </div>
-
-  <div id="adminSection" style="display:none;">
-  <div class="card" id="adminPanel" style="display:none;">
-    <h3>Create Workflow</h3>
-    <input id="type" placeholder="Type (e.g. internship)">
-    <input id="flow" placeholder="Flow (HOD,ADMIN)">
-    <button onclick="createWorkflow()">Create</button>
-  </div>
-  </div>
-
-  <div id="usersSection" style="display:none;">
-  <div class="card" id="rolePanel" style="display:none;">
-    <h3>Role Management</h3>
-
-    <input id="roleInput" class="input-field" placeholder="Enter role (e.g. HOD)">
-    <button onclick="createRole()">Add Role</button>
-
-    <h4 style="margin-top:20px;">Existing Roles</h4>
-    <div id="roleList"></div>
-  </div>
-  
-
-  <div class="card" id="userPanel" style="display:none;">
-    <h3>Create User</h3>
-
-    <input id="newUser" class="input-field" placeholder="Username">
-    <input id="newPass" class="input-field" placeholder="Password">
-
-    <select id="roleSelect" class="input-field">
-      <option value="" disabled selected>Select Role</option>
-    </select>
-
-    <button onclick="createUser()">Create User</button>
-  </div>
-
-  <div class="card" id="userListPanel" style="display:none;">
-    <h3>Users</h3>
-    <div id="userList"></div>
-  </div>
-  </div>
-
-  <div id="documentsSection">
-  <div class="card full">
-    <h3>Documents</h3>
-    <input 
-    id="searchInput"
-    placeholder="Search documents..."
-    style="
-      width:100%;
-      margin-bottom:10px;
-      padding:10px;
-      border-radius:10px;
-      background:rgba(255,255,255,0.06);
-      color:white;
-      border:none;
-    "
-    oninput="load()"
-  />
-    <div id="list" class="doc-list"></div>
-  </div>
-  </div>
-
-  </div> <!-- main -->
-  </div> <!-- layout -->
-
-</div>
+<!-- ═══════ TOAST ═══════ -->
+<div id="toast"></div>
 
 <script>
+/* ═══════════════════════════════════════════════
+   VENATRIX DASHBOARD — v2.0
+═══════════════════════════════════════════════ */
 
-/* ===== TOAST ===== */
-function showToast(msg) {
-  const t = document.getElementById("toast");
-  t.innerText = msg;
-  t.style.display = "block";
-
-  setTimeout(() => {
-    t.style.display = "none";
-  }, 2500);
-}
-
-/* ===== 🔥 JWT ADDITION (NO REMOVAL) ===== */
+/* ── AUTH ── */
 const token = sessionStorage.getItem("token");
-
-/* fallback to old system if token not present */
-let user = JSON.parse(sessionStorage.getItem("user"));
+let user = null;
 
 if (token) {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
     user = payload;
-  } catch {}
+  } catch(e) {}
 }
 
 if (!user) {
   window.location = "index.html";
 }
 
-document.getElementById("role").innerText = user.role;
-if (user.role !== "ADMIN") {
-  const adminSide = document.getElementById("adminSide");
-  if (adminSide) adminSide.style.display = "none";
-}
+/* ── INIT USER UI ── */
+document.getElementById("userName").textContent = user.username;
+document.getElementById("userRole").textContent = user.role;
+document.getElementById("userAvatar").textContent = user.username[0].toUpperCase();
 
-/* ===== ADMIN VIEW ===== */
 if (user.role === "ADMIN") {
-  document.getElementById("adminTab").style.display = "inline-block";
-  document.querySelector("[onclick=\"switchTab('admin')\"]").style.display = "block";
-  if (user.role !== "ADMIN") {
-    document.querySelector("[onclick=\"switchTab('admin')\"]").style.display = "none";
- }
-  document.getElementById("adminPanel").style.display = "block";
-  document.getElementById("rolePanel").style.display = "block";
-  document.getElementById("userPanel").style.display = "block";
-  document.getElementById("userListPanel").style.display = "block";
-
-  loadRoles();
-  loadRolesIntoDropdown();
-  loadUsers();
+  document.getElementById("navAdmin").style.display = "flex";
+  document.getElementById("navUsers").style.display = "flex";
 }
 
-if (user.role !== "ADMIN") {
-  document.getElementById("adminTab").style.display = "none";
+/* ── STATE ── */
+let rejectId = null;
+let esignDocId = null;
+let notifications = JSON.parse(sessionStorage.getItem("notifs_" + user.username) || "[]");
+let notifPanelOpen = false;
+
+/* ── TOAST ── */
+function showToast(msg, type = "info") {
+  const t = document.getElementById("toast");
+  const icons = { info: "ℹ️", success: "✅", error: "❌", warn: "⚠️" };
+  t.innerHTML = `<span>${icons[type] || "ℹ️"}</span><span>${msg}</span>`;
+  t.style.display = "flex";
+  t.style.animation = "toast-in 0.35s var(--ease-spring)";
+  clearTimeout(t._to);
+  t._to = setTimeout(() => { t.style.display = "none"; }, 3000);
 }
 
-/* ===== LOGOUT ===== */
+/* ── HEADERS ── */
+function getHeaders(json = true) {
+  const h = {};
+  if (json) h["Content-Type"] = "application/json";
+  if (token) h["authorization"] = token;
+  return h;
+}
+
+/* ── TAB SWITCHING ── */
+function switchTab(tab, el) {
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".nav-item[data-tab]").forEach(n => n.classList.remove("active"));
+
+  const sec = document.getElementById("section-" + tab);
+  if (sec) sec.classList.add("active");
+  if (el) el.classList.add("active");
+
+  if (tab === "documents") load();
+  if (tab === "admin" && user.role === "ADMIN") { loadWorkflows(); }
+  if (tab === "users" && user.role === "ADMIN") { loadRoles(); loadRolesIntoDropdown(); loadUsers(); }
+  if (tab === "upload") { loadWorkflowsForUpload(); loadRolesForUpload(); }
+}
+
+/* ── LOGOUT ── */
 function logout() {
   sessionStorage.removeItem("user");
   sessionStorage.removeItem("token");
   window.location = "index.html";
 }
 
-/* ===== AUTH HEADER ===== */
-function getHeaders(json = true) {
-  const headers = {};
-  if (json) headers["Content-Type"] = "application/json";
-  if (token) headers["authorization"] = token;
-  return headers;
+/* ══════════════════════════════════════════════
+   NOTIFICATIONS
+══════════════════════════════════════════════ */
+function pushNotif(msg) {
+  notifications.unshift({ msg, time: Date.now(), read: false });
+  if (notifications.length > 40) notifications.pop();
+  saveNotifs();
+  renderNotifBadge();
 }
 
-/* ===== UPLOAD ===== */
-async function upload() {
-  const file = document.getElementById("file").files[0];
+function saveNotifs() {
+  sessionStorage.setItem("notifs_" + user.username, JSON.stringify(notifications));
+}
 
-  if (!file) {
-    showToast("Select a file first");
+function renderNotifBadge() {
+  const unread = notifications.filter(n => !n.read).length;
+  const badge = document.getElementById("notifBadge");
+  if (unread > 0) {
+    badge.textContent = unread > 9 ? "9+" : unread;
+    badge.style.display = "flex";
+  } else {
+    badge.style.display = "none";
+  }
+}
+
+function toggleNotifPanel() {
+  notifPanelOpen = !notifPanelOpen;
+  document.getElementById("notif-panel").classList.toggle("open", notifPanelOpen);
+  if (notifPanelOpen) {
+    renderNotifList();
+    notifications.forEach(n => n.read = true);
+    saveNotifs();
+    renderNotifBadge();
+  }
+}
+
+function renderNotifList() {
+  const list = document.getElementById("notifList");
+  if (!notifications.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🔔</div><div class="empty-label">No notifications</div></div>`;
+    return;
+  }
+  list.innerHTML = notifications.map(n => `
+    <div class="notif-item ${n.read ? '' : 'unread'}">
+      <div class="notif-text">${n.msg}</div>
+      <div class="notif-time">${timeAgo(n.time)}</div>
+    </div>
+  `).join("");
+}
+
+function timeAgo(ts) {
+  const sec = Math.floor((Date.now() - ts) / 1000);
+  if (sec < 60) return "just now";
+  if (sec < 3600) return Math.floor(sec/60) + "m ago";
+  if (sec < 86400) return Math.floor(sec/3600) + "h ago";
+  return Math.floor(sec/86400) + "d ago";
+}
+
+/* ══════════════════════════════════════════════
+   DOCUMENTS
+══════════════════════════════════════════════ */
+async function load() {
+  const list = document.getElementById("list");
+  list.innerHTML = `<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>`;
+
+  const res = await fetch("/documents", { headers: token ? { "authorization": token } : {} });
+  const docs = await res.json();
+
+  const query = (document.getElementById("searchInput")?.value || "").toLowerCase();
+  const filterStatus = document.getElementById("filterStatus")?.value || "";
+
+  const visible = docs.filter(doc => {
+    if (user.role !== "ADMIN" && !doc.flow.includes(user.role)) return false;
+    if (query && !doc.name.toLowerCase().includes(query)) return false;
+    if (filterStatus === "pending" && (doc.status === "Fully Approved" || doc.status === "Rejected")) return false;
+    if (filterStatus === "approved" && doc.status !== "Fully Approved") return false;
+    if (filterStatus === "rejected" && doc.status !== "Rejected") return false;
+    return true;
+  });
+
+  const pending  = docs.filter(d => user.role === "ADMIN" || d.flow.includes(user.role))
+                       .filter(d => d.status !== "Fully Approved" && d.status !== "Rejected");
+  const approved = docs.filter(d => user.role === "ADMIN" || d.flow.includes(user.role))
+                       .filter(d => d.status === "Fully Approved");
+  const rejected = docs.filter(d => user.role === "ADMIN" || d.flow.includes(user.role))
+                       .filter(d => d.status === "Rejected");
+
+  animateCount("pendingCount",  parseInt(document.getElementById("pendingCount").textContent)  || 0, pending.length);
+  animateCount("approvedCount", parseInt(document.getElementById("approvedCount").textContent) || 0, approved.length);
+  animateCount("rejectedCount", parseInt(document.getElementById("rejectedCount").textContent) || 0, rejected.length);
+
+  if (!visible.length) {
+    list.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1;">
+        <div class="empty-icon">📭</div>
+        <div class="empty-label">No documents found</div>
+        <div class="empty-sub">Try adjusting the search or filter</div>
+      </div>`;
     return;
   }
 
+  list.innerHTML = "";
+
+  visible.forEach((doc, i) => {
+    const card = document.createElement("div");
+    card.className = "doc-card";
+    card.style.animationDelay = (i * 0.04) + "s";
+
+    const statusClass = doc.status === "Fully Approved" ? "approved" : doc.status === "Rejected" ? "rejected" : "pending";
+    const statusLabel = doc.status === "Fully Approved" ? "Fully Approved" : doc.status;
+
+    const canAct = doc.flow[doc.currentStep] === user.role && doc.status !== "Rejected" && doc.status !== "Fully Approved";
+
+    const flowHtml = doc.flow.map((step, idx) => {
+      let cls = "waiting";
+      if (doc.signedBy && doc.signedBy.includes(step)) cls = "done";
+      else if (doc.status === "Rejected" && idx === doc.currentStep) cls = "rejected-step";
+      else if (idx === doc.currentStep) cls = "current";
+      return `<span class="flow-step ${cls}">${step}</span>`;
+    }).join('<span style="color:var(--text-muted);font-size:11px;">›</span>');
+
+    const signedHtml = doc.signedBy && doc.signedBy.length
+      ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+           ${doc.signedBy.map(s => `<span class="esign-badge">🔏 ${s}</span>`).join("")}
+         </div>`
+      : "";
+
+    const rejectNote = doc.rejected
+      ? `<div class="rejection-note">💬 ${doc.rejectionComment}</div>` : "";
+
+    const uploadedBy = doc.uploadedBy
+      ? `<div class="doc-meta">Uploaded by: ${doc.uploadedBy}</div>` : "";
+
+    const auditHtml = doc.signedBy && doc.signedBy.length
+      ? `<div class="audit-trail">Audit: ${doc.signedBy.join(" → ")}</div>` : "";
+
+    card.innerHTML = `
+      <div class="doc-card-header">
+        <div class="doc-name">${doc.name}</div>
+        <span class="doc-type-badge">${doc.type}</span>
+      </div>
+      <div>
+        <span class="status-pill ${statusClass}">
+          <span class="status-dot"></span>
+          ${statusLabel}
+        </span>
+      </div>
+      <div class="flow-steps">${flowHtml}</div>
+      ${signedHtml}
+      ${auditHtml}
+      ${uploadedBy}
+      ${rejectNote}
+      ${canAct ? `
+        <div class="doc-actions">
+          <button class="btn btn-primary btn-sm" onclick="openEsign(${doc.id})">🔏 Sign & Approve</button>
+          <button class="btn btn-danger btn-sm" onclick="openReject(${doc.id})">Reject</button>
+        </div>` : ""}
+    `;
+
+    list.appendChild(card);
+  });
+}
+
+function animateCount(id, from, to) {
+  const el = document.getElementById(id);
+  if (from === to) { el.textContent = to; return; }
+  const dur = 600, step = 16;
+  const diff = to - from, steps = dur / step;
+  let cur = from, cnt = 0;
+  const timer = setInterval(() => {
+    cnt++;
+    cur = Math.round(from + (diff * (cnt / steps)));
+    el.textContent = cur;
+    if (cnt >= steps) { el.textContent = to; clearInterval(timer); }
+  }, step);
+}
+
+/* ══════════════════════════════════════════════
+   E-SIGN
+══════════════════════════════════════════════ */
+function openEsign(id) {
+  esignDocId = id;
+  document.getElementById("esignPin").value = "";
+  document.getElementById("esignHashPreview").style.display = "none";
+  document.getElementById("esignModal").classList.add("open");
+  setTimeout(() => document.getElementById("esignPin").focus(), 100);
+}
+
+function closeEsignModal() {
+  document.getElementById("esignModal").classList.remove("open");
+  esignDocId = null;
+}
+
+document.getElementById("esignPin").addEventListener("input", async function() {
+  const pin = this.value;
+  if (pin.length >= 4) {
+    const hash = await sha256(user.username + ":" + user.role + ":" + pin + ":" + esignDocId);
+    const preview = document.getElementById("esignHashPreview");
+    preview.textContent = "SIG: " + hash.substring(0,32) + "…";
+    preview.style.display = "block";
+  } else {
+    document.getElementById("esignHashPreview").style.display = "none";
+  }
+});
+
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function submitEsign() {
+  const pin = document.getElementById("esignPin").value;
+  if (!pin || pin.length < 4) {
+    showToast("PIN must be at least 4 characters", "warn");
+    return;
+  }
+
+  const signature = await sha256(user.username + ":" + user.role + ":" + pin + ":" + esignDocId);
+
+  const res = await fetch("/approve", {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ id: esignDocId, role: user.role, signature })
+  });
+
+  if (res.ok) {
+    showToast("Document signed and approved ✅", "success");
+    pushNotif(`You signed document #${esignDocId} as ${user.role}`);
+    closeEsignModal();
+    load();
+  } else {
+    showToast("Approval failed", "error");
+  }
+}
+
+/* ══════════════════════════════════════════════
+   REJECT
+══════════════════════════════════════════════ */
+function openReject(id) {
+  rejectId = id;
+  document.getElementById("rejectInput").value = "";
+  document.getElementById("rejectModal").classList.add("open");
+}
+
+function closeRejectModal() {
+  document.getElementById("rejectModal").classList.remove("open");
+  rejectId = null;
+}
+
+async function submitReject() {
+  const comment = document.getElementById("rejectInput").value.trim();
+  if (!comment) { showToast("Enter a rejection reason", "warn"); return; }
+
+  await fetch("/reject", {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ id: rejectId, role: user.role, comment })
+  });
+
+  showToast("Document rejected", "error");
+  pushNotif(`You rejected document #${rejectId}: "${comment.slice(0,40)}"`);
+  closeRejectModal();
+  load();
+}
+
+// Close modals on overlay click
+document.getElementById("rejectModal").addEventListener("click", function(e) {
+  if (e.target === this) closeRejectModal();
+});
+document.getElementById("esignModal").addEventListener("click", function(e) {
+  if (e.target === this) closeEsignModal();
+});
+
+/* ══════════════════════════════════════════════
+   UPLOAD
+══════════════════════════════════════════════ */
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById("uploadZone").classList.add("drag-over");
+}
+function handleDragLeave() {
+  document.getElementById("uploadZone").classList.remove("drag-over");
+}
+function handleDrop(e) {
+  e.preventDefault();
+  handleDragLeave();
+  if (e.dataTransfer.files[0]) {
+    document.getElementById("file").files = e.dataTransfer.files;
+    showFilePreview(e.dataTransfer.files[0].name);
+  }
+}
+
+function previewFile(e) {
+  if (e.target.files[0]) showFilePreview(e.target.files[0].name);
+}
+
+function showFilePreview(name) {
+  const p = document.getElementById("filePreview");
+  document.getElementById("filePreviewName").textContent = name;
+  p.style.display = "flex";
+}
+
+async function loadWorkflowsForUpload() {
+  try {
+    const res = await fetch("/workflows", { headers: getHeaders(false) });
+    const wfs = await res.json();
+    const sel = document.getElementById("uploadWorkflow");
+    sel.innerHTML = `<option value="">Auto-detect from filename</option>`;
+    wfs.forEach(w => {
+      const o = document.createElement("option");
+      o.value = w.type; o.textContent = w.type;
+      sel.appendChild(o);
+    });
+  } catch(e) {}
+}
+
+async function loadRolesForUpload() {
+  try {
+    const res = await fetch(`/roles/${user.institute}`, { headers: getHeaders(false) });
+    const roles = await res.json();
+    const sel = document.getElementById("uploadRole");
+    sel.innerHTML = `<option value="">No override — use workflow</option>`;
+    roles.forEach(r => {
+      const o = document.createElement("option");
+      o.value = r; o.textContent = r;
+      sel.appendChild(o);
+    });
+  } catch(e) {}
+}
+
+async function upload() {
+  const file = document.getElementById("file").files[0];
+  if (!file) { showToast("Select a file first", "warn"); return; }
+
+  const wfOverride = document.getElementById("uploadWorkflow").value;
+  const roleOverride = document.getElementById("uploadRole").value;
+
   const fd = new FormData();
   fd.append("file", file);
+  if (wfOverride) fd.append("workflow", wfOverride);
+  if (roleOverride) fd.append("targetRole", roleOverride);
 
   const res = await fetch("/upload", {
     method: "POST",
@@ -262,224 +860,25 @@ async function upload() {
     body: fd
   });
 
-  // ✅ ONLY ADDITION
   if (res.ok) {
-    showToast("Upload successful ✅");
+    showToast("Document uploaded successfully", "success");
+    pushNotif(`Uploaded "${file.name}" — awaiting review`);
+    document.getElementById("file").value = "";
+    document.getElementById("filePreview").style.display = "none";
   } else {
-    showToast("Upload failed ❌");
+    showToast("Upload failed", "error");
   }
-
-  load();
 }
 
-function switchTab(tab) {
-
-  document.getElementById("uploadSection").style.display = "none";
-  document.getElementById("adminSection").style.display = "none";
-  document.getElementById("usersSection").style.display = "none";
-  document.getElementById("documentsSection").style.display = "none";
-
-  document.getElementById(tab + "Section").style.display = "block";
-
-  // 🔥 sidebar active state
-  document.querySelectorAll(".sideItem").forEach(i => i.classList.remove("active"));
-  event.target.classList.add("active");
-}
-
-/* ===== LOAD DOCUMENTS ===== */
-async function load() {
-  const list = document.getElementById("list");
-  list.innerHTML = "<p>Loading...</p>";
-
-  const res = await fetch("/documents", {
-    headers: token ? { "authorization": token } : {}
-  });
-
-  const docs = await res.json();
-  const visibleDocs = docs.filter(doc => {
-  if (user.role === "ADMIN") return true;
-    return doc.flow.includes(user.role);
-  });
-
-  const pending = visibleDocs.filter(d => d.status !== "Fully Approved" && d.status !== "Rejected");
-  const approved = visibleDocs.filter(d => d.status === "Fully Approved");
-  const rejected = visibleDocs.filter(d => d.status === "Rejected");
-
-document.getElementById("pendingCount").innerText = pending.length;
-document.getElementById("approvedCount").innerText = approved.length;
-document.getElementById("rejectedCount").innerText = rejected.length;
-
-  list.innerHTML = "";
-
-  const query = document.getElementById("searchInput")?.value?.toLowerCase() || "";
-
-  docs
-    .filter(doc => doc.name.toLowerCase().includes(query))
-    .forEach(doc => {
-
-      if (!doc.flow.includes(user.role) && user.role !== "ADMIN") return;
-
-      const div = document.createElement("div");
-      div.className = "doc-card";
-
-      let btn = "";
-      let rejectBtn = "";
-
-      if (doc.flow[doc.currentStep] === user.role && doc.status !== "Rejected") {
-        btn = `<button onclick="approve(${doc.id})">Approve</button>`;
-        rejectBtn = `<button onclick="rejectDoc(${doc.id})" style="background:#ef4444;margin-left:8px;">Reject</button>`;
-    }
-
-    div.innerHTML = `
-      <h4>${doc.name}</h4>
-      <p>
-  <span style="
-    padding:4px 10px;
-    border-radius:999px;
-    font-size:12px;
-    font-weight:600;
-    background:${
-      doc.status === "Fully Approved"
-        ? "rgba(34,197,94,0.15)"
-        : doc.status === "Rejected"
-        ? "rgba(239,68,68,0.15)"
-        : "rgba(251,191,36,0.15)"
-    };
-    color:${
-      doc.status === "Fully Approved"
-        ? "#22c55e"
-        : doc.status === "Rejected"
-        ? "#ef4444"
-        : "#fbbf24"
-    };
-  ">
-    ${doc.status}
-  </span>
-</p>
-
-<p>Current: ${doc.flow[doc.currentStep] || "Done"}</p>
-<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
-  ${doc.flow.map((step, i) => {
-    let color = "#334155";
-
-    if (doc.signedBy && doc.signedBy.includes(step)) {
-      color = "#22c55e"; // approved
-    } else if (doc.status === "Rejected" && i === doc.currentStep) {
-      color = "#ef4444"; // rejected
-    } else if (i === doc.currentStep) {
-      color = "#fbbf24"; // current
-    }
-
-    return `
-      <span style="
-        padding:4px 8px;
-        border-radius:999px;
-        background:${color};
-        font-size:11px;
-      ">
-        ${step}
-      </span>
-    `;
-  }).join("")}
-</div>
-
-${doc.signedBy && doc.signedBy.length
-  ? `<p style="color:#38bdf8;">Signed by: ${doc.signedBy.join(", ")}</p>`
-  : ""}
-
-  ${doc.signedBy && doc.signedBy.length
-  ? `<p style="font-size:12px;color:#94a3b8;">
-       Audit: ${doc.signedBy.join(" → ")}
-     </p>`
-  : ""}
-
-${doc.rejected
-  ? `<p style="color:#ef4444;">Rejected: ${doc.rejectionComment}</p>`
-  : ""}
-
-${btn}
-${rejectBtn}
-    `;
-
-    list.appendChild(div);
-  });
-}
-
-/* ===== APPROVE DOC ===== */
-async function approve(id) {
-  await fetch("/approve", {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({ id, role: user.role })
-  });
-
-  load();
-}
-
-/* ===== ❌ REJECT DOC (NEW) ===== */
-async function rejectDoc(id) {
-  const comment = prompt("Enter rejection reason:");
-
-  if (!comment) return;
-
-  await fetch("/reject", {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({
-      id,
-      role: user.role,
-      comment
-    })
-  });
-
-  showToast("Rejected ❌");
-  load();
-}
-
-let rejectId = null;
-
-function rejectDoc(id) {
-  rejectId = id;
-  document.getElementById("rejectModal").style.display = "flex";
-}
-
-function closeModal() {
-  document.getElementById("rejectModal").style.display = "none";
-}
-
-async function submitReject() {
-  const comment = document.getElementById("rejectInput").value;
-
-  if (!comment) {
-    showToast("Enter reason");
-    return;
-  }
-
-  await fetch("/reject", {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({
-      id: rejectId,
-      role: user.role,
-      comment
-    })
-  });
-
-  closeModal();
-  document.getElementById("rejectInput").value = "";
-  showToast("Rejected ❌");
-  load();
-}
-
-/* ===== WORKFLOW ===== */
+/* ══════════════════════════════════════════════
+   WORKFLOW
+══════════════════════════════════════════════ */
 async function createWorkflow() {
-  const type = document.getElementById("type").value;
-  const flow = document.getElementById("flow").value.split(",");
+  const type = document.getElementById("type").value.trim().toLowerCase();
+  const flowRaw = document.getElementById("flow").value.trim();
+  const flow = flowRaw.split(",").map(s => s.trim()).filter(Boolean);
 
-  if (!type || flow.length === 0) {
-    showToast("Enter valid workflow");
-    return;
-  }
+  if (!type || !flow.length) { showToast("Enter valid type and flow", "warn"); return; }
 
   await fetch("/create-workflow", {
     method: "POST",
@@ -487,225 +886,149 @@ async function createWorkflow() {
     body: JSON.stringify({ type, flow })
   });
 
-  showToast("Workflow created");
+  document.getElementById("type").value = "";
+  document.getElementById("flow").value = "";
+  showToast("Workflow created", "success");
+  loadWorkflows();
 }
 
-/* ===== ROLE ===== */
-async function createRole() {
-  const role = document.getElementById("roleInput").value;
-
-  if (!role) {
-    showToast("Enter role name");
+async function loadWorkflows() {
+  const res = await fetch("/workflows", { headers: getHeaders(false) });
+  const wfs = await res.json();
+  const el = document.getElementById("workflowList");
+  if (!wfs.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-label">No workflows yet</div></div>`;
     return;
   }
+  el.innerHTML = wfs.map((w,i) => `
+    <div class="workflow-item" style="animation-delay:${i*0.05}s">
+      <div class="workflow-type">${w.type}</div>
+      <div class="workflow-flow">
+        ${w.flow.map((s,idx) => `
+          ${idx ? '<span class="workflow-arrow">›</span>' : ''}
+          <span class="workflow-step">${s}</span>
+        `).join("")}
+      </div>
+    </div>
+  `).join("");
+}
+
+/* ══════════════════════════════════════════════
+   ROLES
+══════════════════════════════════════════════ */
+async function createRole() {
+  const role = document.getElementById("roleInput").value.trim().toUpperCase();
+  if (!role) { showToast("Enter role name", "warn"); return; }
 
   await fetch("/create-role", {
     method: "POST",
     headers: getHeaders(),
-    body: JSON.stringify({
-      role,
-      institute: user.institute
-    })
+    body: JSON.stringify({ role, institute: user.institute })
   });
 
   document.getElementById("roleInput").value = "";
-
+  showToast("Role added", "success");
   loadRoles();
   loadRolesIntoDropdown();
 }
 
-/* ===== LOAD ROLES ===== */
 async function loadRoles() {
-  const res = await fetch(`/roles/${user.institute}`, {
-    headers: token ? { "authorization": token } : {}
-  });
-
+  const res = await fetch(`/roles/${user.institute}`, { headers: getHeaders(false) });
   const roles = await res.json();
-
-  const list = document.getElementById("roleList");
-  const pending = docs.filter(d => d.status !== "Fully Approved" && d.status !== "Rejected");
-  const approved = docs.filter(d => d.status === "Fully Approved");
-  const rejected = docs.filter(d => d.status === "Rejected");
-
-list.innerHTML = `
-  <h3 style="color:#fbbf24;">⏳ Pending (${pending.length})</h3>
-  <div id="pendingList"></div>
-
-  <h3 style="color:#22c55e;margin-top:20px;">✅ Approved (${approved.length})</h3>
-  <div id="approvedList"></div>
-
-  <h3 style="color:#ef4444;margin-top:20px;">❌ Rejected (${rejected.length})</h3>
-  <div id="rejectedList"></div>
-`;
-
-  roles.forEach(r => {
-    const div = document.createElement("div");
-    div.className = "doc-card";
-    div.innerText = r;
-    if (doc.status === "Rejected") {
-  document.getElementById("rejectedList").appendChild(div);
-  } else if (doc.status === "Fully Approved") {
-    document.getElementById("approvedList").appendChild(div);
-  } else {
-    document.getElementById("pendingList").appendChild(div);
-  }
-  });
+  document.getElementById("roleList").innerHTML = roles
+    .map(r => `<span class="role-tag">${r}</span>`)
+    .join("");
 }
 
-/* ===== DROPDOWN ===== */
 async function loadRolesIntoDropdown() {
-  const res = await fetch(`/roles/${user.institute}`, {
-    headers: token ? { "authorization": token } : {}
-  });
-
+  const res = await fetch(`/roles/${user.institute}`, { headers: getHeaders(false) });
   const roles = await res.json();
-
-  const select = document.getElementById("roleSelect");
-  select.innerHTML = `<option disabled selected>Select Role</option>`;
-
-  roles.forEach(role => {
-    if (role === "ADMIN") return;
-
-    const option = document.createElement("option");
-    option.value = role;
-    option.innerText = role;
-    select.appendChild(option);
+  const sel = document.getElementById("roleSelect");
+  sel.innerHTML = `<option value="" disabled selected>Select Role</option>`;
+  roles.filter(r => r !== "ADMIN").forEach(r => {
+    const o = document.createElement("option");
+    o.value = r; o.textContent = r;
+    sel.appendChild(o);
   });
 }
 
-/* ===== CREATE USER ===== */
+/* ══════════════════════════════════════════════
+   USERS
+══════════════════════════════════════════════ */
 async function createUser() {
-  const username = document.getElementById("newUser").value;
+  const username = document.getElementById("newUser").value.trim();
   const password = document.getElementById("newPass").value;
   const role = document.getElementById("roleSelect").value;
 
-  if (!username || !password || !role) {
-    showToast("Fill all fields");
-    return;
-  }
+  if (!username || !password || !role) { showToast("Fill all fields", "warn"); return; }
 
   const res = await fetch("/create-user", {
     method: "POST",
     headers: getHeaders(),
-    body: JSON.stringify({
-      username,
-      password,
-      role,
-      institute: user.institute
-    })
+    body: JSON.stringify({ username, password, role, institute: user.institute })
   });
 
   if (!res.ok) {
-    const msg = await res.text();
-    showToast(msg);
+    showToast(await res.text(), "error");
     return;
   }
 
-  showToast("User created");
-
+  showToast("User created", "success");
   document.getElementById("newUser").value = "";
   document.getElementById("newPass").value = "";
-
   loadUsers();
 }
 
-/* ===== LOAD USERS ===== */
 async function loadUsers() {
-  const res = await fetch(`/users/${user.institute}`, {
-    headers: token ? { "authorization": token } : {}
-  });
-
+  const res = await fetch(`/users/${user.institute}`, { headers: getHeaders(false) });
   const users = await res.json();
-
   const list = document.getElementById("userList");
-  list.innerHTML = "";
-
-  users.forEach(u => {
-    const div = document.createElement("div");
-    div.className = "doc-card";
-
-    if (u.role === "PENDING") {
-      div.innerHTML = `
-        <strong>${u.username}</strong> — PENDING
-        <br>
-        <button onclick="approveUser('${u.username}')">Approve</button>
-      `;
-    } else {
-      div.innerText = `${u.username} — ${u.role}`;
-    }
-
-    list.appendChild(div);
-  });
+  list.innerHTML = users.map((u, i) => {
+    const isPending = u.role === "PENDING";
+    return `
+      <div class="user-list-item ${isPending ? 'user-list-pending' : ''}" style="animation-delay:${i*0.04}s">
+        <div class="user-list-avatar">${u.username[0].toUpperCase()}</div>
+        <div style="flex:1">
+          <div class="user-list-name">${u.username}</div>
+          <div class="user-list-role">${u.role}</div>
+        </div>
+        ${isPending
+          ? `<button class="btn btn-primary btn-sm" onclick="approveUser('${u.username}')">Approve</button>`
+          : `<span style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">${u.email || ''}</span>`
+        }
+      </div>
+    `;
+  }).join("");
 }
 
-/* ===== APPROVE USER ===== */
 async function approveUser(username) {
-  const role = prompt("Enter role (e.g. HOD)");
-
+  const role = prompt("Enter role for this user (e.g. HOD):");
   if (!role) return;
 
   const res = await fetch("/approve-user", {
     method: "POST",
     headers: getHeaders(),
-    body: JSON.stringify({
-      username,
-      institute: user.institute,
-      role
-    })
+    body: JSON.stringify({ username, institute: user.institute, role })
   });
 
-  if (!res.ok) {
-    const msg = await res.text();
-    showToast(msg);
-    return;
-  }
-
-  showToast("User approved");
+  if (!res.ok) { showToast(await res.text(), "error"); return; }
+  showToast("User approved", "success");
+  pushNotif(`Approved user "${username}" with role ${role}`);
   loadUsers();
 }
 
-/* ===== INIT ===== */
+/* ══════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════ */
+renderNotifBadge();
 load();
+
 if (user.role === "ADMIN") {
-  switchTab("admin");
+  switchTab("admin", document.querySelector("[data-tab='admin']"));
 } else {
-  switchTab("documents");
+  switchTab("documents", document.querySelector("[data-tab='documents']"));
 }
-
 </script>
-
-<!-- 🔥 REJECT MODAL -->
-<div id="rejectModal" style="
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-">
-
-  <div style="
-    background: #020617;
-    padding: 25px;
-    border-radius: 16px;
-    width: 300px;
-    box-shadow: 0 0 30px rgba(0,0,0,0.7);
-  ">
-    <h3>Reject Document</h3>
-
-    <textarea id="rejectInput"
-      placeholder="Enter reason..."
-      style="width:100%;padding:10px;border-radius:10px;background:#111827;color:white;border:none;">
-    </textarea>
-
-    <div style="margin-top:15px;display:flex;justify-content:space-between;">
-      <button onclick="submitReject()">Reject</button>
-      <button onclick="closeModal()" style="background:#334155;">Cancel</button>
-    </div>
-  </div>
-
-</div>
 
 </body>
 </html>
