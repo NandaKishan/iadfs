@@ -47,7 +47,9 @@
       "ADMIN"
     ],
     "currentStep": 0,
-    "status": "Pending"
+    "status": "Rejected",
+    "rejected": true,
+    "rejectionComment": "ass"
   },
   {
     "id": 1777111962725,
@@ -130,6 +132,20 @@
   {
     "id": 1777357426197,
     "name": "style.css",
+    "type": "leave",
+    "flow": [
+      "HOD",
+      "ADMIN"
+    ],
+    "currentStep": 0,
+    "status": "Pending",
+    "rejected": false,
+    "rejectionComment": "",
+    "signedBy": []
+  },
+  {
+    "id": 1779689148296,
+    "name": "dashboard.png",
     "type": "leave",
     "flow": [
       "HOD",
