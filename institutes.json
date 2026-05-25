@@ -112,6 +112,18 @@
         "username": "test10",
         "password": "$2b$10$j/2vXf/BlY1WTpmeNrnBQuN4y4m8oChIaH55jt5P1cLWENoOm.e7i",
         "role": "HOD"
+      },
+      {
+        "username": "nanda1",
+        "password": "$2b$10$lRireSCV3.VpOSzjMkaWzebJ.LHMu6f6vJ2GPLx1.6zwjJYUqjpBW",
+        "role": "HOD",
+        "email": "nandakishankm.ci25@rvce.edu.in"
+      },
+      {
+        "username": "pranav",
+        "password": "$2b$10$0DTdJlTDVLgdYQshQcKsPuNFr06hrxL76y5Eua5LOO00l7/ojmWgK",
+        "role": "ASSOCIATE PROFESSOR",
+        "email": "pranavmm.ci25@rvce.edu.in"
       }
     ]
   }

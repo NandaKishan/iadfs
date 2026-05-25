@@ -7,7 +7,18 @@ const cors     = require("cors");
 const bcrypt   = require("bcrypt");
 const jwt      = require("jsonwebtoken");
 const crypto   = require("crypto");
+const nodemailer = require("nodemailer");
 require("dotenv").config();
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT),
+  secure: process.env.SMTP_SECURE === "true",
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
+  }
+});
 
 const app = express();
 
@@ -21,26 +32,18 @@ const OTP_TTL    = 10 * 60 * 1000; // 10 minutes
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const RESEND_FROM    = process.env.RESEND_FROM;
 
-async function sendEmail({ to, subject, html }) {
-  if (!RESEND_API_KEY) {
-    console.warn("⚠️  RESEND_API_KEY not set — email not sent. OTP logged below.");
-    return { ok: false, fake: true };
-  }
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${RESEND_API_KEY}`,
-      "Content-Type":  "application/json",
-    },
-    body: JSON.stringify({ from: RESEND_FROM, to, subject, html }),
+async function sendEmail(to, subject, html) {
+
+  const info = await transporter.sendMail({
+    from: `"Venatrix" <${process.env.SMTP_USER}>`,
+    to: to,
+    subject: subject,
+    html: html
   });
-  const data = await res.json();
-  if (!res.ok) {
-    console.error("Resend error:", data);
-    return { ok: false, error: data };
-  }
-  console.log(`📧 Email sent via Resend → ${to} (id: ${data.id})`);
-  return { ok: true, id: data.id };
+
+  console.log("📧 Email sent:", info.messageId);
+
+  return { ok: true };
 }
 
 if (!RESEND_API_KEY) {
@@ -158,7 +161,12 @@ app.post("/send-otp", async (req, res) => {
     </div>
   `;
 
-  const result = await sendEmail({ to: email, subject: "Your Venatrix Verification Code", html: emailHtml });
+  console.log("Sending OTP to:", email);
+  const result = await sendEmail(
+    email,
+    "Your Venatrix Verification Code",
+    emailHtml
+  );
 
   if (result.fake) {
     // No API key — log OTP so dev can still test
