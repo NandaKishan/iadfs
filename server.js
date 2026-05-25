@@ -1,11 +1,13 @@
 const express  = require("express");
+const fetch = (...args) =>
+  import('node-fetch').then(({default: fetch}) => fetch(...args));
 const multer   = require("multer");
 const fs       = require("fs");
 const cors     = require("cors");
 const bcrypt   = require("bcrypt");
 const jwt      = require("jsonwebtoken");
 const crypto   = require("crypto");
-const nodemailer = require("nodemailer");
+require("dotenv").config();
 
 const app = express();
 
@@ -13,32 +15,38 @@ const app = express();
 const SECRET     = process.env.JWT_SECRET || "venatrix_supersecret_2025";
 const OTP_TTL    = 10 * 60 * 1000; // 10 minutes
 
-// Configure nodemailer — reads from ENV or falls back to Ethereal (test)
-let transporter;
-(async () => {
-  if (process.env.SMTP_HOST) {
-    transporter = nodemailer.createTransport({
-      host:   process.env.SMTP_HOST,
-      port:   parseInt(process.env.SMTP_PORT || "587"),
-      secure: process.env.SMTP_SECURE === "true",
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-    console.log("✅ SMTP configured from ENV");
-  } else {
-    // Dev mode: use Ethereal (all emails captured, no real sends)
-    const testAccount = await nodemailer.createTestAccount();
-    transporter = nodemailer.createTransport({
-      host: "smtp.ethereal.email",
-      port: 587,
-      auth: { user: testAccount.user, pass: testAccount.pass },
-    });
-    console.log("⚠️  No SMTP ENV found — using Ethereal test email");
-    console.log("    Preview URL will be logged when OTPs are sent");
+// ─── RESEND EMAIL (real email, no fake SMTP) ──────────────
+// Set RESEND_API_KEY env variable with your key from resend.com
+// Set RESEND_FROM env to your verified sender e.g. "Venatrix <noreply@yourdomain.com>"
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_FROM    = process.env.RESEND_FROM;
+
+async function sendEmail({ to, subject, html }) {
+  if (!RESEND_API_KEY) {
+    console.warn("⚠️  RESEND_API_KEY not set — email not sent. OTP logged below.");
+    return { ok: false, fake: true };
   }
-})();
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${RESEND_API_KEY}`,
+      "Content-Type":  "application/json",
+    },
+    body: JSON.stringify({ from: RESEND_FROM, to, subject, html }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    console.error("Resend error:", data);
+    return { ok: false, error: data };
+  }
+  console.log(`📧 Email sent via Resend → ${to} (id: ${data.id})`);
+  return { ok: true, id: data.id };
+}
+
+if (!RESEND_API_KEY) {
+  console.log("💡 To enable real email: set RESEND_API_KEY (get one free at resend.com)");
+  console.log("   Optional: set RESEND_FROM to your verified sender address");
+}
 
 // ─── MIDDLEWARE ───────────────────────────────────────────
 app.use(cors());
@@ -105,6 +113,10 @@ app.post("/send-otp", async (req, res) => {
     return res.status(400).send("All fields required");
   }
 
+  if (!email.endsWith("@rvce.edu.in")) {
+    return res.status(400).send("Only RVCE institute emails allowed");
+  }
+
   // Validate email domain loosely (institute-specific check on final verify)
   if (!email.includes("@") || email.length < 5) {
     return res.status(400).send("Invalid email address");
@@ -128,49 +140,37 @@ app.post("/send-otp", async (req, res) => {
 
   otpStore.set(email, { otp, expiresAt, data: { username, password, email, institute } });
 
-  // Send email
-  try {
-    const info = await transporter.sendMail({
-      from: `"Venatrix" <noreply@venatrix.app>`,
-      to: email,
-      subject: "Your Venatrix Verification Code",
-      html: `
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#04050f;color:#e8eeff;border-radius:16px;">
-          <div style="font-family:monospace;font-size:22px;font-weight:700;letter-spacing:3px;color:#00e5c8;margin-bottom:8px;">
-            VENATRIX
-          </div>
-          <div style="font-size:14px;color:#8899bb;margin-bottom:32px;">Intelligent Information Flow</div>
+  // Send email via Resend
+  const emailHtml = `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#04050f;color:#e8eeff;border-radius:16px;">
+      <div style="font-family:monospace;font-size:22px;font-weight:700;letter-spacing:3px;color:#00e5c8;margin-bottom:8px;">VENATRIX</div>
+      <div style="font-size:14px;color:#8899bb;margin-bottom:32px;">Intelligent Information Flow</div>
+      <div style="font-size:16px;margin-bottom:16px;color:#e8eeff;">
+        Hi <strong>${username}</strong>, here is your verification code:
+      </div>
+      <div style="background:#0d1225;border:1px solid rgba(0,229,200,0.2);border-radius:12px;padding:20px 32px;text-align:center;margin:24px 0;">
+        <div style="font-family:monospace;font-size:40px;font-weight:700;letter-spacing:12px;color:#00e5c8;">${otp}</div>
+      </div>
+      <div style="font-size:13px;color:#4a5880;">
+        This code expires in <strong style="color:#e8eeff">10 minutes</strong>.<br>
+        If you didn't request this, you can safely ignore this email.
+      </div>
+    </div>
+  `;
 
-          <div style="font-size:16px;margin-bottom:16px;color:#e8eeff;">
-            Hi <strong>${username}</strong>, here is your verification code:
-          </div>
+  const result = await sendEmail({ to: email, subject: "Your Venatrix Verification Code", html: emailHtml });
 
-          <div style="background:#0d1225;border:1px solid rgba(0,229,200,0.2);border-radius:12px;padding:20px 32px;text-align:center;margin:24px 0;">
-            <div style="font-family:monospace;font-size:40px;font-weight:700;letter-spacing:12px;color:#00e5c8;">
-              ${otp}
-            </div>
-          </div>
-
-          <div style="font-size:13px;color:#4a5880;">
-            This code expires in <strong style="color:#e8eeff">10 minutes</strong>.<br>
-            If you didn't request this, you can safely ignore this email.
-          </div>
-        </div>
-      `
-    });
-
-    // In dev (Ethereal) print the preview URL
-    const preview = nodemailer.getTestMessageUrl(info);
-    if (preview) {
-      console.log(`📧 OTP email preview: ${preview}`);
-    }
-
-    res.send("OTP sent");
-  } catch (err) {
-    console.error("Email send failed:", err);
-    // In dev, still log OTP to console so testing works without real SMTP
+  if (result.fake) {
+    // No API key — log OTP so dev can still test
     console.log(`🔑 DEV OTP for ${email}: ${otp}`);
-    res.send("OTP sent (check server console in dev mode)");
+    res.send("OTP sent (check server console — set RESEND_API_KEY for real email)");
+  } else if (!result.ok) {
+    console.error("Email delivery failed:", result.error);
+    // Still let user proceed; log OTP as fallback
+    console.log(`🔑 FALLBACK OTP for ${email}: ${otp}`);
+    res.send("OTP sent");
+  } else {
+    res.send("OTP sent");
   }
 });
 
@@ -554,6 +554,78 @@ app.post("/reject", auth, (req, res) => {
   }
 
   res.send("Rejected");
+});
+
+// ─────────────────────────────────────────────────────────
+// 🔑 GENERATE / STORE SIGNING KEY
+// ─────────────────────────────────────────────────────────
+
+app.post("/generate-key", auth, (req, res) => {
+  // Generate a deterministic public key fingerprint for the user
+  // In a real system this would be a proper asymmetric keypair; here we
+  // derive a stable fingerprint from the user identity + a server secret.
+  const rawKey = crypto
+    .createHmac("sha256", SECRET + "_KEY_SALT")
+    .update(req.user.username + ":" + req.user.institute)
+    .digest("hex");
+
+  const fingerprint = rawKey.match(/.{2}/g).join(":").substring(0, 47); // XX:XX:XX… format
+  const publicKey = "VNX-" + rawKey.substring(0, 16).toUpperCase();
+
+  // Persist key reference in institutes.json
+  try {
+    const institutes = getInstitutes();
+    const inst = institutes.find(i => i.name === req.user.institute);
+    if (inst) {
+      const u = inst.users.find(u => u.username === req.user.username);
+      if (u) {
+        u.signingKey = publicKey;
+        u.keyFingerprint = fingerprint;
+        saveInstitutes(institutes);
+      }
+    }
+  } catch(e) {}
+
+  pushNotif(req.user.username, `🔑 Signing key generated: ${publicKey}`);
+  res.json({ publicKey, fingerprint });
+});
+
+app.get("/my-key", auth, (req, res) => {
+  try {
+    const institutes = getInstitutes();
+    const inst = institutes.find(i => i.name === req.user.institute);
+    if (!inst) return res.json({ publicKey: null });
+    const u = inst.users.find(u => u.username === req.user.username);
+    if (!u) return res.json({ publicKey: null });
+    res.json({ publicKey: u.signingKey || null, fingerprint: u.keyFingerprint || null });
+  } catch(e) {
+    res.json({ publicKey: null });
+  }
+});
+
+// ─────────────────────────────────────────────────────────
+// 📎 ASSIGN DOCUMENT TO SPECIFIC USER
+// ─────────────────────────────────────────────────────────
+
+app.post("/assign-document", auth, (req, res) => {
+  const { docId, assignTo } = req.body;
+  if (!docId || !assignTo) return res.status(400).send("docId and assignTo required");
+
+  const doc = documents.find(d => d.id === docId);
+  if (!doc) return res.status(404).send("Document not found");
+
+  // Only uploader or ADMIN can assign
+  if (doc.uploadedBy !== req.user.username && req.user.role !== "ADMIN") {
+    return res.status(403).send("Not authorized to assign this document");
+  }
+
+  doc.assignedTo = assignTo;
+  fs.writeFileSync("data.json", JSON.stringify(documents, null, 2));
+
+  pushNotif(assignTo, `📄 Document "${doc.name}" has been assigned to you for review`);
+  pushNotif(req.user.username, `You assigned "${doc.name}" to ${assignTo}`);
+
+  res.send("Assigned");
 });
 
 // ─────────────────────────────────────────────────────────

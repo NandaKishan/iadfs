@@ -413,6 +413,11 @@ async function signupStep1() {
     showToast("Fill all fields", "warn"); return;
   }
 
+  if (!email.endsWith("@rvce.edu.in")) {
+    showToast("Use your RVCE institute email only", "error");
+    return;
+  }
+
   if (password.length < 6) {
     showToast("Password must be at least 6 characters", "warn"); return;
   }

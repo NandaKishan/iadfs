@@ -155,12 +155,23 @@
         <span class="nav-label">Admin</span>
       </div>
 
+      <div class="nav-item" data-tab="keymanager" onclick="switchTab('keymanager', this)" id="navKeyManager" style="display:none;">
+        <span class="nav-icon">🔑</span>
+        <span class="nav-label">My Keys</span>
+      </div>
+
       <div class="nav-item sidebar-bell" onclick="toggleNotifPanel()">
         <span class="nav-icon">🔔</span>
         <span class="nav-label">Notifications</span>
         <span id="notifBadge" class="notif-badge" style="display:none;">0</span>
       </div>
 
+    </div>
+
+    <!-- Key section -->
+    <div id="keySection" class="sidebar-key-section" onclick="switchTab('keymanager', document.getElementById('navKeyManager'))" title="My Signing Key">
+      <div class="sidebar-key-label">🔑 Signing Key</div>
+      <div class="sidebar-key-value" id="sidebarKeyDisplay">Not generated</div>
     </div>
 
     <div class="sidebar-footer">
@@ -174,7 +185,7 @@
   <main class="main-content" id="mainContent">
 
     <!-- ── DOCUMENTS ── -->
-    <div id="section-documents" class="section active">
+    <div id="section-documents" class="section active" style="padding:0;">
       <div class="page-header">
         <div class="header-row">
           <div>
@@ -384,6 +395,82 @@
       </div>
     </div>
 
+    <!-- ── KEY MANAGER ── -->
+    <div id="section-keymanager" class="section">
+      <div class="page-header">
+        <div class="header-row">
+          <div>
+            <div class="page-title">🔑 My Signing Key</div>
+            <div class="page-subtitle">Generate and manage your cryptographic signing identity</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:24px 32px; max-width:640px;">
+        <div class="panel">
+          <div class="panel-title">
+            <div class="panel-icon">🔑</div>
+            Cryptographic Signing Key
+          </div>
+
+          <div id="keyStatusWrap">
+            <div style="font-size:14px;color:var(--text-secondary);line-height:1.7;margin-bottom:20px;">
+              Your signing key is a unique cryptographic identity tied to your account. When you e-sign a document, this key proves it was you — and it's verifiable in the audit trail.<br><br>
+              <span style="color:var(--accent-teal);font-family:'JetBrains Mono',monospace;font-size:12px;">Keys are deterministically derived from your identity and cannot be transferred.</span>
+            </div>
+
+            <div id="keyDisplayArea" style="display:none;">
+              <div class="key-display">
+                <div class="key-display-label">Public Key ID</div>
+                <div class="key-display-value" id="keyPublicValue">—</div>
+                <div class="key-fingerprint" id="keyFingerprintValue">Fingerprint: —</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+                <div style="width:8px;height:8px;border-radius:50%;background:var(--accent-green);box-shadow:0 0 6px var(--accent-green);"></div>
+                <span style="font-size:13px;color:var(--accent-green);font-family:'JetBrains Mono',monospace;">Key active — ready to sign documents</span>
+              </div>
+            </div>
+
+            <div id="noKeyArea">
+              <div style="padding:24px;background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.2);border-radius:var(--radius-md);margin-bottom:20px;text-align:center;">
+                <div style="font-size:32px;margin-bottom:10px;opacity:0.7;">🔓</div>
+                <div style="font-size:14px;color:var(--accent-amber);font-weight:700;margin-bottom:6px;">No signing key found</div>
+                <div style="font-size:13px;color:var(--text-muted);">Generate your key to start e-signing documents</div>
+              </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="generateKey()" id="genKeyBtn">
+              ⚡ Generate Signing Key
+            </button>
+            <button class="btn btn-ghost" onclick="generateKey()" id="regenKeyBtn" style="display:none;margin-left:8px;">
+              🔄 Regenerate Key
+            </button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">
+            <div class="panel-icon">ℹ️</div>
+            How It Works
+          </div>
+          <div style="font-size:13px;color:var(--text-secondary);line-height:1.8;">
+            <div style="margin-bottom:12px;display:flex;gap:10px;align-items:flex-start;">
+              <span style="color:var(--accent-teal);font-weight:700;flex-shrink:0;">1.</span>
+              Generate your key — it's derived from your identity using HMAC-SHA256.
+            </div>
+            <div style="margin-bottom:12px;display:flex;gap:10px;align-items:flex-start;">
+              <span style="color:var(--accent-teal);font-weight:700;flex-shrink:0;">2.</span>
+              When you sign a document, you enter a PIN. Your signature is: <span style="font-family:'JetBrains Mono',monospace;color:var(--accent-teal);">SHA256(username:role:pin:docId)</span>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <span style="color:var(--accent-teal);font-weight:700;flex-shrink:0;">3.</span>
+              The signature is stored in the audit trail and can be independently verified.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </main>
 
 </div><!-- /app -->
@@ -430,6 +517,48 @@
   </div>
 </div>
 
+<!-- ═══════ GLASS DOCUMENT PREVIEW ═══════ -->
+<div id="docPreviewOverlay" class="doc-preview-overlay" onclick="closePreviewOnBackdrop(event)">
+  <div class="doc-preview-backdrop"></div>
+  <div class="doc-preview-glass" id="docPreviewGlass">
+    <div class="doc-preview-topbar">
+      <div class="doc-preview-title">
+        <div class="preview-icon" id="previewIcon">📄</div>
+        <span id="previewFileName">Document</span>
+      </div>
+      <div class="doc-preview-controls">
+        <button class="preview-ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+        <button class="preview-ctrl-btn" onclick="closePreview()" title="Close">✕</button>
+      </div>
+    </div>
+    <div class="doc-preview-body" id="previewBody">
+      <div class="doc-preview-placeholder">
+        <div class="ph-icon">📂</div>
+        <div class="ph-name" id="previewPlaceholderName"></div>
+        <div class="ph-sub">Preview not available — file is stored on server</div>
+      </div>
+    </div>
+    <div class="doc-preview-meta" id="previewMeta"></div>
+  </div>
+</div>
+
+<!-- ═══════ ASSIGN DOCUMENT MODAL ═══════ -->
+<div id="assignModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">📎 Assign Document</div>
+    <div class="modal-subtitle">Assign this document to a specific user for review or action.</div>
+    <div class="form-group">
+      <label class="form-label">Assign To (Username)</label>
+      <input type="text" id="assignUserInput" class="input-field" placeholder="Enter username…" list="assignUsersList">
+      <datalist id="assignUsersList"></datalist>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeAssignModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAssign()">Assign →</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════ TOAST ═══════ -->
 <div id="toast"></div>
 
@@ -462,6 +591,8 @@ if (user.role === "ADMIN") {
   document.getElementById("navAdmin").style.display = "flex";
   document.getElementById("navUsers").style.display = "flex";
 }
+// Key manager is available to all users
+document.getElementById("navKeyManager").style.display = "flex";
 
 /* ── STATE ── */
 let rejectId = null;
@@ -501,6 +632,7 @@ function switchTab(tab, el) {
   if (tab === "admin" && user.role === "ADMIN") { loadWorkflows(); }
   if (tab === "users" && user.role === "ADMIN") { loadRoles(); loadRolesIntoDropdown(); loadUsers(); }
   if (tab === "upload") { loadWorkflowsForUpload(); loadRolesForUpload(); }
+  if (tab === "keymanager") { loadMyKey(); }
 }
 
 /* ── LOGOUT ── */
@@ -637,14 +769,22 @@ async function load() {
          </div>`
       : "";
 
-    const rejectNote = doc.rejected
-      ? `<div class="rejection-note">💬 ${doc.rejectionComment}</div>` : "";
+    const rejectNote = doc.rejected && (doc.uploadedBy === user.username || user.role === "ADMIN")
+      ? `<div class="rejection-banner">
+           <div class="rejection-banner-header">❌ Rejection Reason</div>
+           <div class="rejection-banner-reason">${doc.rejectionComment || "No reason provided."}</div>
+         </div>` : "";
 
     const uploadedBy = doc.uploadedBy
       ? `<div class="doc-meta">Uploaded by: ${doc.uploadedBy}</div>` : "";
 
     const auditHtml = doc.signedBy && doc.signedBy.length
       ? `<div class="audit-trail">Audit: ${doc.signedBy.join(" → ")}</div>` : "";
+
+    const assignedBadge = doc.assignedTo
+      ? `<div class="assigned-badge">👤 Assigned to: ${doc.assignedTo}</div>` : "";
+
+    const canAssign = (doc.uploadedBy === user.username || user.role === "ADMIN") && doc.status !== "Fully Approved" && doc.status !== "Rejected";
 
     card.innerHTML = `
       <div class="doc-card-header">
@@ -657,16 +797,19 @@ async function load() {
           ${statusLabel}
         </span>
       </div>
+      ${assignedBadge}
       <div class="flow-steps">${flowHtml}</div>
       ${signedHtml}
       ${auditHtml}
       ${uploadedBy}
       ${rejectNote}
-      ${canAct ? `
-        <div class="doc-actions">
+      <div class="doc-actions" style="flex-wrap:wrap;">
+        <button class="btn-view" onclick="openPreview(${JSON.stringify(doc).replace(/"/g,'&quot;')})">👁 View</button>
+        ${canAct ? `
           <button class="btn btn-primary btn-sm" onclick="openEsign(${doc.id})">🔏 Sign & Approve</button>
-          <button class="btn btn-danger btn-sm" onclick="openReject(${doc.id})">Reject</button>
-        </div>` : ""}
+          <button class="btn btn-danger btn-sm" onclick="openReject(${doc.id})">Reject</button>` : ""}
+        ${canAssign ? `<button class="assign-btn" onclick="openAssignModal(${doc.id})">📎 Assign</button>` : ""}
+      </div>
     `;
 
     list.appendChild(card);
@@ -1018,10 +1161,197 @@ async function approveUser(username) {
 }
 
 /* ══════════════════════════════════════════════
+   KEY MANAGEMENT
+══════════════════════════════════════════════ */
+let mySigningKey = null;
+
+async function loadMyKey() {
+  try {
+    const res = await fetch("/my-key", { headers: getHeaders(false) });
+    const data = await res.json();
+    mySigningKey = data.publicKey;
+    renderKeyUI(data);
+  } catch(e) {}
+}
+
+function renderKeyUI(data) {
+  const hasKey = !!data.publicKey;
+  document.getElementById("keyDisplayArea").style.display  = hasKey ? "block" : "none";
+  document.getElementById("noKeyArea").style.display       = hasKey ? "none" : "block";
+  document.getElementById("genKeyBtn").style.display       = hasKey ? "none" : "inline-flex";
+  document.getElementById("regenKeyBtn").style.display     = hasKey ? "inline-flex" : "none";
+
+  if (hasKey) {
+    document.getElementById("keyPublicValue").textContent    = data.publicKey;
+    document.getElementById("keyFingerprintValue").textContent = "Fingerprint: " + (data.fingerprint || "—");
+    document.getElementById("sidebarKeyDisplay").textContent  = data.publicKey;
+  } else {
+    document.getElementById("sidebarKeyDisplay").textContent = "Not generated";
+  }
+}
+
+async function generateKey() {
+  const btn = document.getElementById("genKeyBtn");
+  const btn2 = document.getElementById("regenKeyBtn");
+  btn.textContent = "Generating…";
+  btn.disabled = true;
+  btn2.disabled = true;
+
+  try {
+    const res = await fetch("/generate-key", {
+      method: "POST",
+      headers: getHeaders()
+    });
+    const data = await res.json();
+    mySigningKey = data.publicKey;
+    renderKeyUI(data);
+    showToast("Signing key generated ✅", "success");
+  } catch(e) {
+    showToast("Failed to generate key", "error");
+  }
+
+  btn.textContent = "⚡ Generate Signing Key";
+  btn.disabled = false;
+  btn2.disabled = false;
+}
+
+/* ══════════════════════════════════════════════
+   GLASS DOCUMENT PREVIEW
+══════════════════════════════════════════════ */
+let previewFullscreen = false;
+
+function getFileIcon(name) {
+  const ext = (name.split('.').pop() || "").toLowerCase();
+  if (["jpg","jpeg","png","gif","webp","svg"].includes(ext)) return "🖼️";
+  if (ext === "pdf") return "📕";
+  if (["doc","docx"].includes(ext)) return "📘";
+  if (["xls","xlsx"].includes(ext)) return "📗";
+  if (["ppt","pptx"].includes(ext)) return "📙";
+  return "📄";
+}
+
+function isImageFile(name) {
+  const ext = (name.split('.').pop() || "").toLowerCase();
+  return ["jpg","jpeg","png","gif","webp","svg"].includes(ext);
+}
+
+function openPreview(doc) {
+  const overlay = document.getElementById("docPreviewOverlay");
+  document.getElementById("previewFileName").textContent = doc.name;
+  document.getElementById("previewIcon").textContent     = getFileIcon(doc.name);
+  document.getElementById("previewPlaceholderName").textContent = doc.name;
+  previewFullscreen = false;
+  document.getElementById("docPreviewGlass").classList.remove("fullscreen");
+
+  // Build meta strip
+  const ts = doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleString() : "—";
+  document.getElementById("previewMeta").innerHTML = `
+    <div class="doc-preview-meta-item"><strong>Type:</strong> ${doc.type}</div>
+    <div class="doc-preview-meta-item"><strong>Status:</strong> ${doc.status}</div>
+    <div class="doc-preview-meta-item"><strong>Uploaded by:</strong> ${doc.uploadedBy || "—"}</div>
+    <div class="doc-preview-meta-item"><strong>Date:</strong> ${ts}</div>
+    ${doc.signedBy && doc.signedBy.length ? `<div class="doc-preview-meta-item"><strong>Signed by:</strong> ${doc.signedBy.join(", ")}</div>` : ""}
+  `;
+
+  // Preview body — show image if possible, otherwise placeholder
+  const body = document.getElementById("previewBody");
+  body.innerHTML = `
+    <div class="doc-preview-placeholder">
+      <div class="ph-icon">${getFileIcon(doc.name)}</div>
+      <div class="ph-name">${doc.name}</div>
+      <div class="ph-sub" style="margin-bottom:16px;">File stored on server — use download to view full content</div>
+      ${doc.rejected ? `<div style="background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.3);border-radius:8px;padding:12px 16px;max-width:400px;text-align:left;margin-top:12px;">
+        <div style="font-size:11px;color:var(--accent-red);font-weight:700;margin-bottom:6px;font-family:'JetBrains Mono',monospace;">REJECTED — REASON:</div>
+        <div style="font-size:13px;color:var(--text-secondary);">${doc.rejectionComment || "No reason provided"}</div>
+      </div>` : ""}
+    </div>
+  `;
+
+  // Show
+  overlay.classList.add("visible");
+  document.body.style.overflow = "hidden";
+}
+
+function closePreview() {
+  document.getElementById("docPreviewOverlay").classList.remove("visible");
+  document.body.style.overflow = "";
+  previewFullscreen = false;
+}
+
+function closePreviewOnBackdrop(e) {
+  if (e.target === document.getElementById("docPreviewOverlay") ||
+      e.target.classList.contains("doc-preview-backdrop")) {
+    closePreview();
+  }
+}
+
+function toggleFullscreen() {
+  previewFullscreen = !previewFullscreen;
+  document.getElementById("docPreviewGlass").classList.toggle("fullscreen", previewFullscreen);
+}
+
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Escape") {
+    closePreview();
+    closeAssignModal();
+  }
+});
+
+/* ══════════════════════════════════════════════
+   ASSIGN DOCUMENT
+══════════════════════════════════════════════ */
+let assignDocId = null;
+
+async function openAssignModal(docId) {
+  assignDocId = docId;
+  document.getElementById("assignUserInput").value = "";
+  document.getElementById("assignModal").classList.add("open");
+
+  // Load users into datalist
+  try {
+    const res = await fetch(`/users/${user.institute}`, { headers: getHeaders(false) });
+    const users = await res.json();
+    const dl = document.getElementById("assignUsersList");
+    dl.innerHTML = users.map(u => `<option value="${u.username}">`).join("");
+  } catch(e) {}
+
+  setTimeout(() => document.getElementById("assignUserInput").focus(), 100);
+}
+
+function closeAssignModal() {
+  document.getElementById("assignModal").classList.remove("open");
+  assignDocId = null;
+}
+
+async function submitAssign() {
+  const assignTo = document.getElementById("assignUserInput").value.trim();
+  if (!assignTo) { showToast("Enter a username", "warn"); return; }
+
+  const res = await fetch("/assign-document", {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ docId: assignDocId, assignTo })
+  });
+
+  if (res.ok) {
+    showToast(`Document assigned to ${assignTo}`, "success");
+    closeAssignModal();
+    load();
+  } else {
+    showToast(await res.text(), "error");
+  }
+}
+
+document.getElementById("assignModal").addEventListener("click", function(e) {
+  if (e.target === this) closeAssignModal();
+});
+
+/* ══════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════ */
 renderNotifBadge();
 load();
+loadMyKey(); // Load key silently on startup
 
 if (user.role === "ADMIN") {
   switchTab("admin", document.querySelector("[data-tab='admin']"));
