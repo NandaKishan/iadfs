@@ -12,12 +12,9 @@
       {
         "username": "admin",
         "password": "$2b$10$lSfnLhWZ5ugKA4qoWQAIBu2MYflazEx42lWTC2ArMJiua6lIBZmXy",
-        "role": "ADMIN"
-      },
-      {
-        "username": "test",
-        "password": "$2b$10$XR0bcoSgHTEPa0iv6EO1WOkyOMy7BWwB291hz/JyO.VaAh32nftPK",
-        "role": "Dean Student Affairs"
+        "role": "ADMIN",
+        "signingKey": "VNX-764C8A1796BF944C",
+        "keyFingerprint": "76:4c:8a:17:96:bf:94:4c:8f:b7:47:bd:81:fb:9a:08"
       },
       {
         "username": "nanda",
@@ -68,18 +65,6 @@
         "email": "rahul123@rvce.edu.in"
       },
       {
-        "username": "test5",
-        "password": "$2b$10$/M9d/UpVOYzdpriYCrYagujwyICRxeqflniFE8QHDt06ltK1Nk5BO",
-        "role": "PENDING",
-        "email": "test5@rvce.edu.in"
-      },
-      {
-        "username": "test7",
-        "password": "$2b$10$x8Zk9wc0uHJvEkZpzufxn.nL2tEj.6O/aniCiuCq1o8x/8Sih9Nt2",
-        "role": "PENDING",
-        "email": "test7@rvce.edu.in"
-      },
-      {
         "username": "test8",
         "password": "$2b$10$Z3Nb8EofK7JkQ3.uH8v2VuHZJ90O6kIqlCekLrIx6fODIIsow5ihu",
         "role": "Associate Professor - PHY",
@@ -92,38 +77,24 @@
         "email": "rushil123@rvce.edu.in"
       },
       {
-        "username": "tanish",
-        "password": "$2b$10$NspNJ7abZt.O/Mz/KzwPWe8xAZJ77fHRohxLrnk0v6hXiz.3zTxw6",
-        "role": "my assistant"
-      },
-      {
-        "username": "test9",
-        "password": "$2b$10$s4fMmIyI6ODjOxBYuZsMy.2wF9zE3toFjbJTyXXI8d.HMhz/o0c0e",
-        "role": "HOD",
-        "email": "test9@rvce.edu.in"
-      },
-      {
         "username": "sushmitha",
         "password": "$2b$10$LFWJzEVEmImF79GTypzL4.2kWAS/FyuqU6fJCMxtqnjvkFDBOUDja",
         "role": "Professor",
         "email": "abc@rvce.edu.in"
       },
       {
-        "username": "test10",
-        "password": "$2b$10$j/2vXf/BlY1WTpmeNrnBQuN4y4m8oChIaH55jt5P1cLWENoOm.e7i",
-        "role": "HOD"
-      },
-      {
-        "username": "nanda1",
-        "password": "$2b$10$lRireSCV3.VpOSzjMkaWzebJ.LHMu6f6vJ2GPLx1.6zwjJYUqjpBW",
-        "role": "HOD",
-        "email": "nandakishankm.ci25@rvce.edu.in"
-      },
-      {
         "username": "pranav",
         "password": "$2b$10$0DTdJlTDVLgdYQshQcKsPuNFr06hrxL76y5Eua5LOO00l7/ojmWgK",
         "role": "ASSOCIATE PROFESSOR",
-        "email": "pranavmm.ci25@rvce.edu.in"
+        "email": "pranavmm.ci25@rvce.edu.in",
+        "signingKey": "VNX-D1AA67E01A995BC0",
+        "keyFingerprint": "d1:aa:67:e0:1a:99:5b:c0:b7:14:89:33:bb:37:67:b2"
+      },
+      {
+        "username": "nanda7",
+        "password": "$2b$10$eQEk7aPsCAZjLJlJxr3eeeKe67dO7eUGkNTYKlQG.tmN9Y3TsmfA.",
+        "role": "DEAN",
+        "email": "nandakishankm.ci25@rvce.edu.in"
       }
     ]
   }

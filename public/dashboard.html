@@ -8,95 +8,43 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <style>
-    /* dashboard-local overrides */
     body { overflow: hidden; }
-
     #app { display: flex; height: 100vh; }
 
-    /* notification popover */
+    /* ── NOTIFICATION PANEL ── */
     #notif-panel {
-      position: fixed;
-      top: 0; right: 0;
-      width: 340px;
-      height: 100vh;
+      position: fixed; top: 0; right: 0;
+      width: 340px; height: 100vh;
       background: var(--bg-deep);
       border-left: 1px solid var(--border-subtle);
       z-index: 500;
       transform: translateX(100%);
       transition: transform 0.4s var(--ease-smooth);
-      display: flex;
-      flex-direction: column;
+      display: flex; flex-direction: column;
     }
     #notif-panel.open { transform: translateX(0); }
-    .notif-header {
-      padding: 20px;
-      border-bottom: 1px solid var(--border-subtle);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
+    .notif-header { padding: 20px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; }
     .notif-title { font-size: 16px; font-weight: 700; }
     .notif-list { flex: 1; overflow-y: auto; padding: 12px; }
-    .notif-item {
-      padding: 12px 14px;
-      border-radius: var(--radius-md);
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      margin-bottom: 8px;
-      animation: card-in 0.3s var(--ease-out) both;
-      transition: all 0.25s;
-    }
+    .notif-item { padding: 12px 14px; border-radius: var(--radius-md); background: var(--bg-card); border: 1px solid var(--border-subtle); margin-bottom: 8px; animation: card-in 0.3s var(--ease-out) both; transition: all 0.25s; }
     .notif-item:hover { border-color: rgba(0,229,200,0.2); }
     .notif-item.unread { border-left: 2px solid var(--accent-teal); }
     .notif-text { font-size: 13px; line-height: 1.5; }
     .notif-time { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 5px; }
-    .notif-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-teal); flex-shrink: 0; }
 
-    /* nav item notification position */
-    .nav-item { position: relative; }
-
-    /* file upload preview */
+    /* ── FILE PREVIEW ── */
     .file-preview {
-      padding: 12px 16px;
-      background: var(--bg-elevated);
-      border: 1px solid rgba(0,229,200,0.2);
-      border-radius: var(--radius-md);
-      font-size: 13px;
-      font-family: 'JetBrains Mono', monospace;
-      color: var(--accent-teal);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 12px;
-      display: none;
+      padding: 12px 16px; background: var(--bg-elevated);
+      border: 1px solid rgba(0,229,200,0.2); border-radius: var(--radius-md);
+      font-size: 13px; font-family: 'JetBrains Mono', monospace;
+      color: var(--accent-teal); display: none; align-items: center; gap: 10px; margin-bottom: 12px;
     }
 
-    /* e-sign PIN input area */
-    .esign-wrap {
-      background: var(--bg-elevated);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      padding: 14px;
-      margin-top: 8px;
-    }
+    /* ── E-SIGN WRAP ── */
+    .esign-wrap { background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; margin-top: 8px; }
+    .esign-hash { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--accent-teal); background: rgba(0,229,200,0.05); padding: 6px 10px; border-radius: var(--radius-sm); word-break: break-all; margin-top: 8px; opacity: 0.7; }
 
-    .esign-hash {
-      font-size: 10px;
-      font-family: 'JetBrains Mono', monospace;
-      color: var(--accent-teal);
-      background: rgba(0,229,200,0.05);
-      padding: 6px 10px;
-      border-radius: var(--radius-sm);
-      word-break: break-all;
-      margin-top: 8px;
-      opacity: 0.7;
-    }
-
-    /* workflow list in admin */
-    #workflowList .workflow-item:nth-child(odd) { animation-delay: 0.05s; }
-    #workflowList .workflow-item:nth-child(even) { animation-delay: 0.1s; }
-
-    /* stagger doc cards */
+    /* ── DOC GRID STAGGER ── */
     .doc-grid .doc-card:nth-child(1) { animation-delay: 0.04s; }
     .doc-grid .doc-card:nth-child(2) { animation-delay: 0.08s; }
     .doc-grid .doc-card:nth-child(3) { animation-delay: 0.12s; }
@@ -105,6 +53,232 @@
     .doc-grid .doc-card:nth-child(6) { animation-delay: 0.24s; }
 
     .sidebar-bell { position: relative; display: inline-flex; }
+    .nav-item { position: relative; }
+
+    /* ══ FULL-PAGE LAYOUT ══ */
+    .section-full { display: none; height: 100%; flex-direction: column; }
+    .section-full.active { display: flex; }
+
+    /* ══ TWO-PANE LAYOUT for Documents ══ */
+    .docs-pane-wrap {
+      display: flex; flex: 1; overflow: hidden; gap: 0;
+    }
+    .docs-main-pane {
+      flex: 1; overflow-y: auto; padding: 24px 28px;
+    }
+    .docs-side-pane {
+      width: 340px; min-width: 300px;
+      border-left: 1px solid var(--border-subtle);
+      overflow-y: auto; padding: 20px;
+      background: rgba(8,12,26,0.5);
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .side-pane-title {
+      font-size: 12px; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 4px;
+    }
+    .activity-feed-item {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 10px 12px; border-radius: var(--radius-md);
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      font-size: 12px; line-height: 1.5; animation: card-in 0.3s both;
+      transition: border-color 0.2s;
+    }
+    .activity-feed-item:hover { border-color: rgba(0,229,200,0.15); }
+    .activity-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+    .activity-dot.green { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+    .activity-dot.red { background: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
+    .activity-dot.amber { background: var(--accent-amber); box-shadow: 0 0 6px var(--accent-amber); }
+    .activity-dot.blue { background: var(--accent-blue); }
+    .activity-text { color: var(--text-secondary); }
+    .activity-time { font-size: 10px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+
+    .quick-stat-mini {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 12px; border-radius: var(--radius-sm);
+      background: var(--bg-elevated); border: 1px solid var(--border-subtle);
+      font-size: 12px;
+    }
+    .quick-stat-mini .qs-label { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; }
+    .quick-stat-mini .qs-val { font-size: 18px; font-weight: 800; }
+    .quick-stat-mini .qs-val.amber { color: var(--accent-amber); }
+    .quick-stat-mini .qs-val.green { color: var(--accent-green); }
+    .quick-stat-mini .qs-val.red { color: var(--accent-red); }
+
+    /* ══ USERS SECTION OVERHAUL ══ */
+    .users-full-wrap { display: flex; flex: 1; overflow: hidden; gap: 0; }
+    .users-left-col { width: 380px; border-right: 1px solid var(--border-subtle); overflow-y: auto; padding: 20px; }
+    .users-right-col { flex: 1; overflow-y: auto; padding: 20px; }
+
+    .role-group { margin-bottom: 24px; }
+    .role-group-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; border-radius: var(--radius-sm);
+      background: rgba(0,229,200,0.04); border: 1px solid rgba(0,229,200,0.1);
+      margin-bottom: 10px; cursor: pointer; user-select: none;
+    }
+    .role-group-header:hover { background: rgba(0,229,200,0.08); }
+    .role-group-name { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; color: var(--accent-teal); }
+    .role-group-count { font-size: 10px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-left: auto; }
+    .role-group-chevron { color: var(--text-muted); font-size: 12px; transition: transform 0.2s; }
+    .role-group.collapsed .role-group-chevron { transform: rotate(-90deg); }
+    .role-group.collapsed .role-group-body { display: none; }
+
+    .user-card-v2 {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 12px; border-radius: var(--radius-md);
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
+      position: relative;
+    }
+    .user-card-v2:hover { border-color: rgba(0,229,200,0.2); transform: translateX(3px); }
+    .user-card-v2.selected { border-color: rgba(0,229,200,0.35); background: rgba(0,229,200,0.04); }
+
+    .user-avatar-v2 {
+      width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700; color: white;
+      position: relative; overflow: hidden;
+      background: linear-gradient(135deg, var(--accent-teal), var(--accent-violet));
+    }
+    .user-avatar-v2 img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+    .user-card-info { flex: 1; min-width: 0; }
+    .user-card-name { font-size: 13px; font-weight: 600; }
+    .user-card-role { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--accent-teal); }
+    .user-card-email { font-size: 10px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    /* ── USER DETAIL PANEL ── */
+    .user-detail-panel {
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl); overflow: hidden;
+      animation: section-in 0.3s both;
+    }
+    .udp-header {
+      padding: 28px 28px 20px;
+      background: linear-gradient(135deg, rgba(0,229,200,0.05), rgba(124,92,252,0.05));
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex; align-items: flex-start; gap: 20px;
+    }
+    .udp-avatar {
+      width: 72px; height: 72px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 800; color: white;
+      background: linear-gradient(135deg, var(--accent-teal), var(--accent-violet));
+      flex-shrink: 0; position: relative; overflow: hidden;
+      border: 2px solid rgba(0,229,200,0.3);
+      cursor: pointer;
+    }
+    .udp-avatar img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+    .udp-avatar .upload-hint {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; opacity: 0; transition: opacity 0.2s;
+    }
+    .udp-avatar:hover .upload-hint { opacity: 1; }
+    .udp-name { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .udp-role-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 99px;
+      background: rgba(0,229,200,0.08); border: 1px solid rgba(0,229,200,0.2);
+      font-size: 11px; font-family: 'JetBrains Mono', monospace;
+      color: var(--accent-teal); margin-bottom: 6px;
+    }
+    .udp-email { font-size: 12px; color: var(--text-muted); }
+    .udp-stats-row {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 10px;
+      padding: 16px 28px; border-bottom: 1px solid var(--border-subtle);
+    }
+    .udp-stat { text-align: center; }
+    .udp-stat-val { font-size: 26px; font-weight: 800; }
+    .udp-stat-val.amber { color: var(--accent-amber); }
+    .udp-stat-val.green { color: var(--accent-green); }
+    .udp-stat-val.red { color: var(--accent-red); }
+    .udp-stat-label { font-size: 10px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+    .udp-docs-section { padding: 16px 28px; }
+    .udp-doc-mini {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px; border-radius: var(--radius-sm);
+      background: var(--bg-elevated); border: 1px solid var(--border-subtle);
+      margin-bottom: 6px; font-size: 12px;
+    }
+    .udp-doc-name { font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .udp-empty { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 13px; }
+
+    /* ══ KEY MANAGER ══ */
+    .key-cooldown-banner {
+      background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2);
+      border-radius: var(--radius-md); padding: 10px 14px;
+      font-size: 13px; color: var(--accent-amber);
+      display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+    }
+
+    /* ══ DOCUMENT VIEWER MODAL ══ */
+    .doc-viewer-modal {
+      position: fixed; inset: 0; z-index: 9000;
+      background: rgba(0,0,0,0.85); backdrop-filter: blur(16px);
+      display: none; align-items: center; justify-content: center;
+    }
+    .doc-viewer-modal.open { display: flex; }
+    .doc-viewer-box {
+      background: var(--bg-card); border: 1px solid rgba(0,229,200,0.2);
+      border-radius: var(--radius-xl);
+      width: min(95vw, 1100px); height: 90vh;
+      display: flex; flex-direction: column;
+      box-shadow: 0 32px 100px rgba(0,0,0,0.8), 0 0 60px rgba(0,229,200,0.06);
+      animation: modal-in 0.35s var(--ease-spring);
+      overflow: hidden;
+    }
+    .doc-viewer-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 24px; border-bottom: 1px solid var(--border-subtle);
+      flex-shrink: 0;
+    }
+    .doc-viewer-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .doc-viewer-body { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; background: #0a0a0a; }
+    .doc-viewer-body img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .doc-viewer-body iframe { width: 100%; height: 100%; border: none; }
+    .doc-viewer-meta { padding: 12px 24px; border-top: 1px solid var(--border-subtle); display: flex; flex-wrap: wrap; gap: 16px; flex-shrink: 0; }
+    .doc-viewer-meta-item { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); }
+    .doc-viewer-meta-item strong { color: var(--text-secondary); }
+
+    /* ══ PROFILE PIC UPLOAD ══ */
+    #pfpInput { display: none; }
+
+    /* ══ PENDING INDICATOR (non-admin) ══ */
+    .my-doc-status-bar {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; padding: 6px 0; border-top: 1px solid var(--border-subtle); margin-top: 8px;
+    }
+
+    /* ══ SOUND STATUS ══ */
+    .sound-toggle {
+      position: fixed; bottom: 24px; left: calc(var(--sidebar-w) + 16px);
+      background: var(--bg-elevated); border: 1px solid var(--border-subtle);
+      border-radius: 99px; padding: 6px 14px; font-size: 12px;
+      cursor: pointer; z-index: 200; transition: all 0.2s;
+      display: flex; align-items: center; gap: 6px; color: var(--text-muted);
+    }
+    .sound-toggle:hover { border-color: rgba(0,229,200,0.3); color: var(--text-primary); }
+
+    /* ══ ASSIGN MODAL ROLE ══ */
+    .assign-role-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: var(--radius-md);
+      background: var(--bg-elevated); border: 1px solid var(--border-subtle);
+      cursor: pointer; margin-bottom: 6px; transition: all 0.2s;
+    }
+    .assign-role-item:hover { border-color: rgba(0,229,200,0.3); }
+    .assign-role-item.selected { border-color: var(--accent-teal); background: rgba(0,229,200,0.05); }
+
+    /* Wider doc-grid for full use */
+    .doc-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+
+    /* ══ KEY MANAGER 2-COL ══ */
+    .key-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 900px) { .key-two-col { grid-template-columns: 1fr; } }
   </style>
 </head>
 
@@ -113,7 +287,6 @@
 
   <!-- ═══════ SIDEBAR ═══════ -->
   <nav class="sidebar" id="sidebar">
-
     <div class="sidebar-brand">
       <div class="logo-wrap">
         <img src="spider.png" alt="Venatrix">
@@ -124,8 +297,10 @@
       </div>
     </div>
 
-    <div id="userChip" class="user-chip">
-      <div class="user-avatar" id="userAvatar">?</div>
+    <div id="userChip" class="user-chip" style="cursor:pointer;" onclick="switchTab('profile', null)">
+      <div class="user-avatar" id="userAvatar" style="position:relative;overflow:hidden;">?
+        <img id="sidebarAvatarImg" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;">
+      </div>
       <div class="user-info">
         <div class="user-name" id="userName">—</div>
         <div class="user-role" id="userRole">—</div>
@@ -134,58 +309,42 @@
 
     <div class="nav-section-label">Navigation</div>
     <div class="nav-items" id="navItems">
-
       <div class="nav-item active" data-tab="documents" onclick="switchTab('documents', this)">
-        <span class="nav-icon">📄</span>
-        <span class="nav-label">Documents</span>
+        <span class="nav-icon">📄</span><span class="nav-label">Documents</span>
       </div>
-
       <div class="nav-item" data-tab="upload" onclick="switchTab('upload', this)">
-        <span class="nav-icon">⬆️</span>
-        <span class="nav-label">Upload</span>
+        <span class="nav-icon">⬆️</span><span class="nav-label">Upload</span>
       </div>
-
       <div class="nav-item" data-tab="users" onclick="switchTab('users', this)" id="navUsers" style="display:none;">
-        <span class="nav-icon">👥</span>
-        <span class="nav-label">Users</span>
+        <span class="nav-icon">👥</span><span class="nav-label">Users</span>
       </div>
-
       <div class="nav-item" data-tab="admin" onclick="switchTab('admin', this)" id="navAdmin" style="display:none;">
-        <span class="nav-icon">⚙️</span>
-        <span class="nav-label">Admin</span>
+        <span class="nav-icon">⚙️</span><span class="nav-label">Admin</span>
       </div>
-
-      <div class="nav-item" data-tab="keymanager" onclick="switchTab('keymanager', this)" id="navKeyManager" style="display:none;">
-        <span class="nav-icon">🔑</span>
-        <span class="nav-label">My Keys</span>
+      <div class="nav-item" data-tab="keymanager" onclick="switchTab('keymanager', document.getElementById('navKeyManager'))" id="navKeyManager" style="display:none;">
+        <span class="nav-icon">🔑</span><span class="nav-label">My Keys</span>
       </div>
-
       <div class="nav-item sidebar-bell" onclick="toggleNotifPanel()">
-        <span class="nav-icon">🔔</span>
-        <span class="nav-label">Notifications</span>
+        <span class="nav-icon">🔔</span><span class="nav-label">Notifications</span>
         <span id="notifBadge" class="notif-badge" style="display:none;">0</span>
       </div>
-
     </div>
 
-    <!-- Key section -->
     <div id="keySection" class="sidebar-key-section" onclick="switchTab('keymanager', document.getElementById('navKeyManager'))" title="My Signing Key">
       <div class="sidebar-key-label">🔑 Signing Key</div>
       <div class="sidebar-key-value" id="sidebarKeyDisplay">Not generated</div>
     </div>
 
     <div class="sidebar-footer">
-      <button class="btn-logout" onclick="logout()">
-        <span>⏻</span> Sign Out
-      </button>
+      <button class="btn-logout" onclick="logout()"><span>⏻</span> Sign Out</button>
     </div>
   </nav>
 
   <!-- ═══════ MAIN ═══════ -->
   <main class="main-content" id="mainContent">
 
-    <!-- ── DOCUMENTS ── -->
-    <div id="section-documents" class="section active" style="padding:0;">
+    <!-- ── DOCUMENTS (two-pane) ── -->
+    <div id="section-documents" class="section-full" style="padding:0;">
       <div class="page-header">
         <div class="header-row">
           <div>
@@ -203,34 +362,68 @@
         </div>
       </div>
 
-      <div style="padding:24px 32px;">
-        <div class="stats-grid">
-          <div class="stat-card pending">
-            <div class="stat-label">Pending</div>
-            <div class="stat-value" id="pendingCount">0</div>
-            <div class="stat-icon">⏳</div>
+      <div class="docs-pane-wrap">
+        <!-- Main doc list -->
+        <div class="docs-main-pane">
+          <div class="stats-grid" style="margin-bottom:20px;">
+            <div class="stat-card pending">
+              <div class="stat-label">Pending</div>
+              <div class="stat-value" id="pendingCount">0</div>
+              <div class="stat-icon">⏳</div>
+            </div>
+            <div class="stat-card approved">
+              <div class="stat-label">Approved</div>
+              <div class="stat-value" id="approvedCount">0</div>
+              <div class="stat-icon">✅</div>
+            </div>
+            <div class="stat-card rejected">
+              <div class="stat-label">Rejected</div>
+              <div class="stat-value" id="rejectedCount">0</div>
+              <div class="stat-icon">❌</div>
+            </div>
           </div>
-          <div class="stat-card approved">
-            <div class="stat-label">Approved</div>
-            <div class="stat-value" id="approvedCount">0</div>
-            <div class="stat-icon">✅</div>
+
+          <div class="search-wrap" style="margin-bottom:16px;">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Search documents by name…" oninput="load()">
           </div>
-          <div class="stat-card rejected">
-            <div class="stat-label">Rejected</div>
-            <div class="stat-value" id="rejectedCount">0</div>
-            <div class="stat-icon">❌</div>
+
+          <div id="list" class="doc-grid">
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
           </div>
         </div>
 
-        <div class="search-wrap">
-          <span class="search-icon">🔍</span>
-          <input type="text" id="searchInput" placeholder="Search documents by name…" oninput="load()">
-        </div>
+        <!-- Side activity feed -->
+        <div class="docs-side-pane" id="activityFeedPane">
+          <div>
+            <div class="side-pane-title">My Overview</div>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px;">
+              <div class="quick-stat-mini">
+                <div><div class="qs-label">My Pending</div></div>
+                <div class="qs-val amber" id="myPendingCount">0</div>
+              </div>
+              <div class="quick-stat-mini">
+                <div><div class="qs-label">My Approved</div></div>
+                <div class="qs-val green" id="myApprovedCount">0</div>
+              </div>
+              <div class="quick-stat-mini">
+                <div><div class="qs-label">My Rejected</div></div>
+                <div class="qs-val red" id="myRejectedCount">0</div>
+              </div>
+            </div>
+          </div>
 
-        <div id="list" class="doc-grid">
-          <div class="skeleton"></div>
-          <div class="skeleton"></div>
-          <div class="skeleton"></div>
+          <div>
+            <div class="side-pane-title">Recent Activity</div>
+            <div id="activityFeed" style="display:flex;flex-direction:column;gap:6px;"></div>
+          </div>
+
+          <div>
+            <div class="side-pane-title" style="margin-top:8px;">Needs Your Action</div>
+            <div id="actionRequiredFeed" style="display:flex;flex-direction:column;gap:6px;"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -239,19 +432,13 @@
     <div id="section-upload" class="section">
       <div class="page-header">
         <div class="header-row">
-          <div>
-            <div class="page-title">Upload Document</div>
-            <div class="page-subtitle">Route a document to a specific workflow</div>
-          </div>
+          <div><div class="page-title">Upload Document</div><div class="page-subtitle">Route a document to a specific workflow</div></div>
         </div>
       </div>
 
-      <div style="padding:24px 32px; max-width:560px;">
+      <div style="padding:24px 32px; display:grid; grid-template-columns:1fr 1fr; gap:24px; max-width:900px;">
         <div class="panel">
-          <div class="panel-title">
-            <div class="panel-icon">📤</div>
-            New Document
-          </div>
+          <div class="panel-title"><div class="panel-icon">📤</div>New Document</div>
 
           <div class="form-group">
             <label class="form-label">Document File</label>
@@ -261,94 +448,91 @@
               <div class="upload-sublabel">PDF, DOCX, PNG, JPG supported</div>
             </div>
             <input type="file" id="file" onchange="previewFile(event)">
-            <div class="file-preview" id="filePreview">
-              <span>📎</span>
-              <span id="filePreviewName"></span>
-            </div>
+            <div class="file-preview" id="filePreview"><span>📎</span><span id="filePreviewName"></span></div>
           </div>
 
           <div class="form-group">
             <label class="form-label">Assign to Workflow</label>
-            <select id="uploadWorkflow">
-              <option value="" disabled selected>Auto-detect from filename…</option>
-            </select>
+            <select id="uploadWorkflow"><option value="" disabled selected>Auto-detect from filename…</option></select>
           </div>
 
           <div class="form-group">
             <label class="form-label">Assign to Role (Override)</label>
-            <select id="uploadRole">
-              <option value="">No override — use workflow</option>
-            </select>
+            <select id="uploadRole"><option value="">No override — use workflow</option></select>
           </div>
 
-          <button class="btn btn-primary btn-full" onclick="upload()" style="margin-top:8px;">
-            ⬆️ Upload Document
-          </button>
+          <button class="btn btn-primary btn-full" onclick="upload()" style="margin-top:8px;">⬆️ Upload Document</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title"><div class="panel-icon">📋</div>Upload Tips</div>
+          <div style="font-size:13px;color:var(--text-secondary);line-height:1.8;">
+            <div style="margin-bottom:10px;display:flex;gap:10px;"><span style="color:var(--accent-teal);font-weight:700;">1.</span> Include the document type in the filename (e.g. <span style="font-family:monospace;color:var(--accent-teal);">leave_form.pdf</span>) for auto-detection.</div>
+            <div style="margin-bottom:10px;display:flex;gap:10px;"><span style="color:var(--accent-teal);font-weight:700;">2.</span> Use the workflow override to send directly to a specific approval chain.</div>
+            <div style="display:flex;gap:10px;"><span style="color:var(--accent-teal);font-weight:700;">3.</span> Once uploaded, you'll get live notifications as each approver signs.</div>
+          </div>
+          <div style="margin-top:20px;padding:12px;background:rgba(0,229,200,0.04);border-radius:var(--radius-md);border:1px solid rgba(0,229,200,0.1);">
+            <div style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;margin-bottom:6px;">ACTIVE WORKFLOWS</div>
+            <div id="uploadWorkflowHints" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- ── USERS ── -->
-    <div id="section-users" class="section">
+    <div id="section-users" class="section-full" style="padding:0;">
       <div class="page-header">
         <div class="header-row">
-          <div>
-            <div class="page-title">Users</div>
-            <div class="page-subtitle">Manage users and roles</div>
+          <div><div class="page-title">Users</div><div class="page-subtitle">Manage users, roles, and permissions</div></div>
+          <div class="page-actions">
+            <button class="btn btn-ghost btn-sm" onclick="toggleCreateUserPanel()">➕ Add User</button>
           </div>
         </div>
       </div>
 
-      <div style="padding:24px 32px;">
-        <div class="panels-grid">
-
-          <div class="panel">
-            <div class="panel-title">
-              <div class="panel-icon">🎭</div>
-              Role Management
-            </div>
-            <div class="form-group">
-              <label class="form-label">New Role Name</label>
-              <input id="roleInput" class="input-field" placeholder="e.g. HOD, DEAN, REGISTRAR">
-            </div>
-            <button class="btn btn-primary" onclick="createRole()">Add Role</button>
-
-            <div style="margin-top:20px;">
-              <div class="form-label" style="margin-bottom:8px;">Existing Roles</div>
-              <div id="roleList" class="roles-wrap"></div>
+      <div class="users-full-wrap">
+        <!-- Left: role-grouped user list -->
+        <div class="users-left-col">
+          <!-- Create user form (hidden by default) -->
+          <div id="createUserPanel" style="display:none;margin-bottom:20px;">
+            <div class="panel" style="margin-bottom:0;">
+              <div class="panel-title"><div class="panel-icon">➕</div>Create User</div>
+              <div class="form-group"><label class="form-label">Username</label><input id="newUser" class="input-field" placeholder="Username"></div>
+              <div class="form-group"><label class="form-label">Password</label><input id="newPass" type="password" class="input-field" placeholder="Password"></div>
+              <div class="form-group">
+                <label class="form-label">Role</label>
+                <select id="roleSelect" class="input-field"><option value="" disabled selected>Select Role</option></select>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-primary" onclick="createUser()">Create</button>
+                <button class="btn btn-ghost" onclick="toggleCreateUserPanel()">Cancel</button>
+              </div>
             </div>
           </div>
 
-          <div class="panel">
-            <div class="panel-title">
-              <div class="panel-icon">➕</div>
-              Create User
+          <!-- Role management -->
+          <div style="margin-bottom:16px;">
+            <div class="form-group" style="display:flex;gap:8px;margin-bottom:0;">
+              <input id="roleInput" class="input-field" placeholder="New role name…" style="margin-bottom:0;">
+              <button class="btn btn-primary btn-sm" onclick="createRole()" style="white-space:nowrap;">Add Role</button>
             </div>
-            <div class="form-group">
-              <label class="form-label">Username</label>
-              <input id="newUser" class="input-field" placeholder="Username">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Password</label>
-              <input id="newPass" type="password" class="input-field" placeholder="Password">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Role</label>
-              <select id="roleSelect" class="input-field">
-                <option value="" disabled selected>Select Role</option>
-              </select>
-            </div>
-            <button class="btn btn-primary" onclick="createUser()">Create User</button>
           </div>
 
+          <!-- Pending users banner -->
+          <div id="pendingUsersBanner" style="display:none;margin-bottom:14px;"></div>
+
+          <!-- Role-grouped user list -->
+          <div id="roleGroupedUsers"></div>
         </div>
 
-        <div class="panel">
-          <div class="panel-title">
-            <div class="panel-icon">👥</div>
-            All Users
+        <!-- Right: user detail -->
+        <div class="users-right-col" id="usersRightCol">
+          <div class="udp-empty" id="userDetailEmpty">
+            <div style="font-size:40px;margin-bottom:12px;opacity:0.3;">👤</div>
+            <div style="font-weight:600;color:var(--text-secondary);">Select a user to view details</div>
+            <div style="font-size:12px;margin-top:6px;">Click any user on the left to see their profile and document metrics</div>
           </div>
-          <div id="userList"></div>
+          <div id="userDetailPanel" style="display:none;"></div>
         </div>
       </div>
     </div>
@@ -357,40 +541,22 @@
     <div id="section-admin" class="section">
       <div class="page-header">
         <div class="header-row">
-          <div>
-            <div class="page-title">Admin Panel</div>
-            <div class="page-subtitle">Configure workflows and system settings</div>
-          </div>
+          <div><div class="page-title">Admin Panel</div><div class="page-subtitle">Configure workflows and system settings</div></div>
         </div>
       </div>
 
       <div style="padding:24px 32px;">
         <div class="panels-grid">
-
           <div class="panel">
-            <div class="panel-title">
-              <div class="panel-icon">🔄</div>
-              Create Workflow
-            </div>
-            <div class="form-group">
-              <label class="form-label">Document Type</label>
-              <input id="type" class="input-field" placeholder="e.g. internship, leave, noc">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Approval Flow (comma-separated)</label>
-              <input id="flow" class="input-field" placeholder="HOD,DEAN,ADMIN">
-            </div>
+            <div class="panel-title"><div class="panel-icon">🔄</div>Create Workflow</div>
+            <div class="form-group"><label class="form-label">Document Type</label><input id="type" class="input-field" placeholder="e.g. internship, leave, noc"></div>
+            <div class="form-group"><label class="form-label">Approval Flow (comma-separated roles)</label><input id="flow" class="input-field" placeholder="HOD,DEAN,ADMIN"></div>
             <button class="btn btn-primary" onclick="createWorkflow()">Create Workflow</button>
           </div>
-
           <div class="panel">
-            <div class="panel-title">
-              <div class="panel-icon">📋</div>
-              Active Workflows
-            </div>
+            <div class="panel-title"><div class="panel-icon">📋</div>Active Workflows</div>
             <div id="workflowList"></div>
           </div>
-
         </div>
       </div>
     </div>
@@ -399,24 +565,21 @@
     <div id="section-keymanager" class="section">
       <div class="page-header">
         <div class="header-row">
-          <div>
-            <div class="page-title">🔑 My Signing Key</div>
-            <div class="page-subtitle">Generate and manage your cryptographic signing identity</div>
-          </div>
+          <div><div class="page-title">🔑 My Signing Key</div><div class="page-subtitle">Generate and manage your cryptographic signing identity</div></div>
         </div>
       </div>
 
-      <div style="padding:24px 32px; max-width:640px;">
-        <div class="panel">
-          <div class="panel-title">
-            <div class="panel-icon">🔑</div>
-            Cryptographic Signing Key
-          </div>
-
-          <div id="keyStatusWrap">
+      <div style="padding:24px 32px;">
+        <div class="key-two-col">
+          <div class="panel">
+            <div class="panel-title"><div class="panel-icon">🔑</div>Cryptographic Signing Key</div>
             <div style="font-size:14px;color:var(--text-secondary);line-height:1.7;margin-bottom:20px;">
               Your signing key is a unique cryptographic identity tied to your account. When you e-sign a document, this key proves it was you — and it's verifiable in the audit trail.<br><br>
               <span style="color:var(--accent-teal);font-family:'JetBrains Mono',monospace;font-size:12px;">Keys are deterministically derived from your identity and cannot be transferred.</span>
+            </div>
+
+            <div id="keyCooldownBanner" class="key-cooldown-banner" style="display:none;">
+              ⏰ <span id="keyCooldownText">You can regenerate your key in 24 hours.</span>
             </div>
 
             <div id="keyDisplayArea" style="display:none;">
@@ -439,32 +602,20 @@
               </div>
             </div>
 
-            <button class="btn btn-primary" onclick="generateKey()" id="genKeyBtn">
-              ⚡ Generate Signing Key
-            </button>
-            <button class="btn btn-ghost" onclick="generateKey()" id="regenKeyBtn" style="display:none;margin-left:8px;">
-              🔄 Regenerate Key
-            </button>
+            <button class="btn btn-primary" onclick="generateKey()" id="genKeyBtn">⚡ Generate Signing Key</button>
+            <button class="btn btn-ghost" onclick="generateKey()" id="regenKeyBtn" style="display:none;margin-left:8px;">🔄 Regenerate Key</button>
           </div>
-        </div>
 
-        <div class="panel">
-          <div class="panel-title">
-            <div class="panel-icon">ℹ️</div>
-            How It Works
-          </div>
-          <div style="font-size:13px;color:var(--text-secondary);line-height:1.8;">
-            <div style="margin-bottom:12px;display:flex;gap:10px;align-items:flex-start;">
-              <span style="color:var(--accent-teal);font-weight:700;flex-shrink:0;">1.</span>
-              Generate your key — it's derived from your identity using HMAC-SHA256.
+          <div class="panel">
+            <div class="panel-title"><div class="panel-icon">ℹ️</div>How It Works</div>
+            <div style="font-size:13px;color:var(--text-secondary);line-height:1.8;">
+              <div style="margin-bottom:12px;display:flex;gap:10px;align-items:flex-start;"><span style="color:var(--accent-teal);font-weight:700;flex-shrink:0;">1.</span>Generate your key — it's derived from your identity using HMAC-SHA256 + timestamp salt.</div>
+              <div style="margin-bottom:12px;display:flex;gap:10px;align-items:flex-start;"><span style="color:var(--accent-teal);font-weight:700;flex-shrink:0;">2.</span>When you sign a document, you enter a PIN. Your signature is: <span style="font-family:'JetBrains Mono',monospace;color:var(--accent-teal);">SHA256(username:role:pin:docId)</span></div>
+              <div style="display:flex;gap:10px;align-items:flex-start;"><span style="color:var(--accent-teal);font-weight:700;flex-shrink:0;">3.</span>The signature is stored in the audit trail and can be independently verified.</div>
             </div>
-            <div style="margin-bottom:12px;display:flex;gap:10px;align-items:flex-start;">
-              <span style="color:var(--accent-teal);font-weight:700;flex-shrink:0;">2.</span>
-              When you sign a document, you enter a PIN. Your signature is: <span style="font-family:'JetBrains Mono',monospace;color:var(--accent-teal);">SHA256(username:role:pin:docId)</span>
-            </div>
-            <div style="display:flex;gap:10px;align-items:flex-start;">
-              <span style="color:var(--accent-teal);font-weight:700;flex-shrink:0;">3.</span>
-              The signature is stored in the audit trail and can be independently verified.
+            <div style="margin-top:20px;padding:14px;background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.15);border-radius:var(--radius-md);">
+              <div style="font-size:11px;color:var(--accent-amber);font-family:'JetBrains Mono',monospace;font-weight:700;margin-bottom:6px;">⚠ REGENERATION POLICY</div>
+              <div style="font-size:12px;color:var(--text-muted);line-height:1.6;">You may regenerate your signing key once every 24 hours. Regenerating invalidates all previous unsigned documents.</div>
             </div>
           </div>
         </div>
@@ -489,10 +640,7 @@
   <div class="modal-box">
     <div class="modal-title">Reject Document</div>
     <div class="modal-subtitle">This action will notify the uploader and halt the workflow.</div>
-    <div class="form-group">
-      <label class="form-label">Rejection Reason</label>
-      <textarea id="rejectInput" placeholder="Describe why this document is being rejected…"></textarea>
-    </div>
+    <div class="form-group"><label class="form-label">Rejection Reason</label><textarea id="rejectInput" placeholder="Describe why this document is being rejected…"></textarea></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeRejectModal()">Cancel</button>
       <button class="btn btn-danger" onclick="submitReject()">Reject Document</button>
@@ -505,10 +653,7 @@
   <div class="modal-box">
     <div class="modal-title">🔏 E-Sign Document</div>
     <div class="modal-subtitle">Enter your secure PIN to cryptographically sign this document.</div>
-    <div class="form-group">
-      <label class="form-label">Signing PIN</label>
-      <input type="password" id="esignPin" class="input-field" placeholder="Enter your signing PIN" maxlength="20">
-    </div>
+    <div class="form-group"><label class="form-label">Signing PIN</label><input type="password" id="esignPin" class="input-field" placeholder="Enter your signing PIN" maxlength="20"></div>
     <div id="esignHashPreview" class="esign-hash" style="display:none;"></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeEsignModal()">Cancel</button>
@@ -517,39 +662,38 @@
   </div>
 </div>
 
-<!-- ═══════ GLASS DOCUMENT PREVIEW ═══════ -->
-<div id="docPreviewOverlay" class="doc-preview-overlay" onclick="closePreviewOnBackdrop(event)">
-  <div class="doc-preview-backdrop"></div>
-  <div class="doc-preview-glass" id="docPreviewGlass">
-    <div class="doc-preview-topbar">
-      <div class="doc-preview-title">
-        <div class="preview-icon" id="previewIcon">📄</div>
-        <span id="previewFileName">Document</span>
+<!-- ═══════ DOCUMENT VIEWER MODAL ═══════ -->
+<div id="docViewerModal" class="doc-viewer-modal">
+  <div class="doc-viewer-box">
+    <div class="doc-viewer-bar">
+      <div class="doc-viewer-title">
+        <div class="panel-icon" id="dvIcon">📄</div>
+        <span id="dvFileName">Document</span>
       </div>
-      <div class="doc-preview-controls">
-        <button class="preview-ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
-        <button class="preview-ctrl-btn" onclick="closePreview()" title="Close">✕</button>
-      </div>
-    </div>
-    <div class="doc-preview-body" id="previewBody">
-      <div class="doc-preview-placeholder">
-        <div class="ph-icon">📂</div>
-        <div class="ph-name" id="previewPlaceholderName"></div>
-        <div class="ph-sub">Preview not available — file is stored on server</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <a id="dvDownloadBtn" class="btn btn-ghost btn-sm" href="#" download>⬇ Download</a>
+        <button class="preview-ctrl-btn" onclick="closeDocViewer()">✕</button>
       </div>
     </div>
-    <div class="doc-preview-meta" id="previewMeta"></div>
+    <div class="doc-viewer-body" id="dvBody">
+      <div style="text-align:center;color:var(--text-muted);padding:40px;">
+        <div style="font-size:48px;margin-bottom:12px;">📂</div>
+        <div>Loading document…</div>
+      </div>
+    </div>
+    <div class="doc-viewer-meta" id="dvMeta"></div>
   </div>
 </div>
 
-<!-- ═══════ ASSIGN DOCUMENT MODAL ═══════ -->
+<!-- ═══════ ASSIGN MODAL ═══════ -->
 <div id="assignModal" class="modal-overlay">
-  <div class="modal-box">
+  <div class="modal-box" style="width:440px;max-width:95vw;">
     <div class="modal-title">📎 Assign Document</div>
-    <div class="modal-subtitle">Assign this document to a specific user for review or action.</div>
-    <div class="form-group">
-      <label class="form-label">Assign To (Username)</label>
-      <input type="text" id="assignUserInput" class="input-field" placeholder="Enter username…" list="assignUsersList">
+    <div class="modal-subtitle">Assign to a role — all users with that role will see it.</div>
+    <div id="assignRoleList" style="max-height:280px;overflow-y:auto;margin-bottom:8px;"></div>
+    <div class="form-group" style="margin-top:8px;">
+      <label class="form-label">Or specific username</label>
+      <input type="text" id="assignUserInput" class="input-field" placeholder="Enter username…" list="assignUsersList" style="margin-bottom:0;">
       <datalist id="assignUsersList"></datalist>
     </div>
     <div class="modal-actions">
@@ -562,25 +706,24 @@
 <!-- ═══════ TOAST ═══════ -->
 <div id="toast"></div>
 
+<!-- Sound toggle -->
+<div class="sound-toggle" onclick="toggleSound()" id="soundToggle">🔊 Sound On</div>
+
+<!-- Profile pic input -->
+<input type="file" id="pfpInput" accept="image/*" onchange="handlePfpUpload(event)">
+
 <script>
 /* ═══════════════════════════════════════════════
-   VENATRIX DASHBOARD — v2.0
+   VENATRIX DASHBOARD v3.0
 ═══════════════════════════════════════════════ */
 
 /* ── AUTH ── */
 const token = sessionStorage.getItem("token");
 let user = null;
-
 if (token) {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    user = payload;
-  } catch(e) {}
+  try { const p = JSON.parse(atob(token.split('.')[1])); user = p; } catch(e) {}
 }
-
-if (!user) {
-  window.location = "index.html";
-}
+if (!user) { window.location = "index.html"; }
 
 /* ── INIT USER UI ── */
 document.getElementById("userName").textContent = user.username;
@@ -591,24 +734,77 @@ if (user.role === "ADMIN") {
   document.getElementById("navAdmin").style.display = "flex";
   document.getElementById("navUsers").style.display = "flex";
 }
-// Key manager is available to all users
 document.getElementById("navKeyManager").style.display = "flex";
 
 /* ── STATE ── */
-let rejectId = null;
-let esignDocId = null;
+let rejectId = null, esignDocId = null, assignDocId = null;
 let notifications = JSON.parse(sessionStorage.getItem("notifs_" + user.username) || "[]");
 let notifPanelOpen = false;
+let soundEnabled = true;
+let allDocs = [];
+let allUsers = [];
+let profilePictures = JSON.parse(localStorage.getItem("venatrix_pfps") || "{}");
+let selectedUserId = null;
+
+/* ── SOUND ENGINE ── */
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function getAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+  return audioCtx;
+}
+
+function playTone(freq, dur, type = 'sine', vol = 0.3) {
+  if (!soundEnabled) return;
+  try {
+    const ctx = getAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = type; osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.start(); osc.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+
+function playSoundSuccess() {
+  playTone(523, 0.1); setTimeout(() => playTone(659, 0.1), 100); setTimeout(() => playTone(784, 0.2), 200);
+}
+function playSoundError() {
+  playTone(200, 0.15, 'sawtooth'); setTimeout(() => playTone(180, 0.2, 'sawtooth'), 150);
+}
+function playSoundNotif() {
+  playTone(880, 0.08); setTimeout(() => playTone(1046, 0.12), 80);
+}
+function playSoundUpload() {
+  [440, 494, 523].forEach((f, i) => setTimeout(() => playTone(f, 0.1), i * 80));
+}
+function playSoundSign() {
+  [659, 698, 784, 880].forEach((f, i) => setTimeout(() => playTone(f, 0.12, 'sine', 0.25), i * 70));
+}
+function playSoundReject() {
+  playTone(220, 0.2, 'square', 0.2); setTimeout(() => playTone(196, 0.25, 'square', 0.2), 200);
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  document.getElementById("soundToggle").textContent = soundEnabled ? "🔊 Sound On" : "🔇 Sound Off";
+}
 
 /* ── TOAST ── */
 function showToast(msg, type = "info") {
   const t = document.getElementById("toast");
   const icons = { info: "ℹ️", success: "✅", error: "❌", warn: "⚠️" };
-  t.innerHTML = `<span>${icons[type] || "ℹ️"}</span><span>${msg}</span>`;
+  t.innerHTML = `<span>${icons[type]||"ℹ️"}</span><span>${msg}</span>`;
   t.style.display = "flex";
   t.style.animation = "toast-in 0.35s var(--ease-spring)";
   clearTimeout(t._to);
-  t._to = setTimeout(() => { t.style.display = "none"; }, 3000);
+  t._to = setTimeout(() => { t.style.display = "none"; }, 3500);
+  if (type === "success") playSoundSuccess();
+  else if (type === "error") playSoundError();
+  else if (type === "warn") playSoundError();
 }
 
 /* ── HEADERS ── */
@@ -619,9 +815,40 @@ function getHeaders(json = true) {
   return h;
 }
 
+/* ── PROFILE PICTURES ── */
+function getPfp(username) { return profilePictures[username] || null; }
+
+function applyPfpToEl(el, username) {
+  const pfp = getPfp(username);
+  const img = el.querySelector("img");
+  if (img) {
+    if (pfp) { img.src = pfp; img.style.display = "block"; }
+    else { img.style.display = "none"; }
+  }
+}
+
+function handlePfpUpload(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    profilePictures[user.username] = ev.target.result;
+    localStorage.setItem("venatrix_pfps", JSON.stringify(profilePictures));
+    refreshAvatars();
+    showToast("Profile picture updated!", "success");
+  };
+  reader.readAsDataURL(file);
+  e.target.value = "";
+}
+
+function refreshAvatars() {
+  const pfp = getPfp(user.username);
+  const sImg = document.getElementById("sidebarAvatarImg");
+  if (sImg) { sImg.src = pfp || ""; sImg.style.display = pfp ? "block" : "none"; }
+}
+
 /* ── TAB SWITCHING ── */
 function switchTab(tab, el) {
-  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".section,.section-full").forEach(s => s.classList.remove("active"));
   document.querySelectorAll(".nav-item[data-tab]").forEach(n => n.classList.remove("active"));
 
   const sec = document.getElementById("section-" + tab);
@@ -629,16 +856,15 @@ function switchTab(tab, el) {
   if (el) el.classList.add("active");
 
   if (tab === "documents") load();
-  if (tab === "admin" && user.role === "ADMIN") { loadWorkflows(); }
-  if (tab === "users" && user.role === "ADMIN") { loadRoles(); loadRolesIntoDropdown(); loadUsers(); }
+  if (tab === "admin" && user.role === "ADMIN") loadWorkflows();
+  if (tab === "users" && user.role === "ADMIN") loadUsersSection();
   if (tab === "upload") { loadWorkflowsForUpload(); loadRolesForUpload(); }
-  if (tab === "keymanager") { loadMyKey(); }
+  if (tab === "keymanager") loadMyKey();
 }
 
 /* ── LOGOUT ── */
 function logout() {
-  sessionStorage.removeItem("user");
-  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("user"); sessionStorage.removeItem("token");
   window.location = "index.html";
 }
 
@@ -648,56 +874,36 @@ function logout() {
 function pushNotif(msg) {
   notifications.unshift({ msg, time: Date.now(), read: false });
   if (notifications.length > 40) notifications.pop();
-  saveNotifs();
-  renderNotifBadge();
+  saveNotifs(); renderNotifBadge();
 }
-
-function saveNotifs() {
-  sessionStorage.setItem("notifs_" + user.username, JSON.stringify(notifications));
-}
-
+function saveNotifs() { sessionStorage.setItem("notifs_" + user.username, JSON.stringify(notifications)); }
 function renderNotifBadge() {
   const unread = notifications.filter(n => !n.read).length;
   const badge = document.getElementById("notifBadge");
-  if (unread > 0) {
-    badge.textContent = unread > 9 ? "9+" : unread;
-    badge.style.display = "flex";
-  } else {
-    badge.style.display = "none";
-  }
+  if (unread > 0) { badge.textContent = unread > 9 ? "9+" : unread; badge.style.display = "flex"; playSoundNotif(); }
+  else badge.style.display = "none";
 }
-
 function toggleNotifPanel() {
   notifPanelOpen = !notifPanelOpen;
   document.getElementById("notif-panel").classList.toggle("open", notifPanelOpen);
   if (notifPanelOpen) {
-    renderNotifList();
-    notifications.forEach(n => n.read = true);
-    saveNotifs();
-    renderNotifBadge();
+    renderNotifList(); notifications.forEach(n => n.read = true);
+    saveNotifs(); renderNotifBadge();
   }
 }
-
 function renderNotifList() {
   const list = document.getElementById("notifList");
-  if (!notifications.length) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🔔</div><div class="empty-label">No notifications</div></div>`;
-    return;
-  }
+  if (!notifications.length) { list.innerHTML = `<div class="empty-state"><div class="empty-icon">🔔</div><div class="empty-label">No notifications</div></div>`; return; }
   list.innerHTML = notifications.map(n => `
     <div class="notif-item ${n.read ? '' : 'unread'}">
       <div class="notif-text">${n.msg}</div>
       <div class="notif-time">${timeAgo(n.time)}</div>
-    </div>
-  `).join("");
+    </div>`).join("");
 }
-
 function timeAgo(ts) {
-  const sec = Math.floor((Date.now() - ts) / 1000);
-  if (sec < 60) return "just now";
-  if (sec < 3600) return Math.floor(sec/60) + "m ago";
-  if (sec < 86400) return Math.floor(sec/3600) + "h ago";
-  return Math.floor(sec/86400) + "d ago";
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return "just now"; if (s < 3600) return Math.floor(s/60) + "m ago";
+  if (s < 86400) return Math.floor(s/3600) + "h ago"; return Math.floor(s/86400) + "d ago";
 }
 
 /* ══════════════════════════════════════════════
@@ -707,14 +913,21 @@ async function load() {
   const list = document.getElementById("list");
   list.innerHTML = `<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>`;
 
-  const res = await fetch("/documents", { headers: token ? { "authorization": token } : {} });
-  const docs = await res.json();
+  try {
+    const res = await fetch("/documents", { headers: token ? { "authorization": token } : {} });
+    allDocs = await res.json();
+  } catch(e) { list.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">📭</div><div class="empty-label">Failed to load documents</div></div>`; return; }
 
   const query = (document.getElementById("searchInput")?.value || "").toLowerCase();
   const filterStatus = document.getElementById("filterStatus")?.value || "";
 
-  const visible = docs.filter(doc => {
-    if (user.role !== "ADMIN" && !doc.flow.includes(user.role)) return false;
+  // For non-admin: show docs they uploaded OR are in the flow for
+  const myDocs = allDocs.filter(doc => {
+    if (user.role === "ADMIN") return true;
+    return doc.uploadedBy === user.username || doc.flow.includes(user.role);
+  });
+
+  const visible = myDocs.filter(doc => {
     if (query && !doc.name.toLowerCase().includes(query)) return false;
     if (filterStatus === "pending" && (doc.status === "Fully Approved" || doc.status === "Rejected")) return false;
     if (filterStatus === "approved" && doc.status !== "Fully Approved") return false;
@@ -722,38 +935,40 @@ async function load() {
     return true;
   });
 
-  const pending  = docs.filter(d => user.role === "ADMIN" || d.flow.includes(user.role))
-                       .filter(d => d.status !== "Fully Approved" && d.status !== "Rejected");
-  const approved = docs.filter(d => user.role === "ADMIN" || d.flow.includes(user.role))
-                       .filter(d => d.status === "Fully Approved");
-  const rejected = docs.filter(d => user.role === "ADMIN" || d.flow.includes(user.role))
-                       .filter(d => d.status === "Rejected");
+  const myPending  = myDocs.filter(d => d.status !== "Fully Approved" && d.status !== "Rejected");
+  const myApproved = myDocs.filter(d => d.status === "Fully Approved");
+  const myRejected = myDocs.filter(d => d.status === "Rejected");
 
-  animateCount("pendingCount",  parseInt(document.getElementById("pendingCount").textContent)  || 0, pending.length);
-  animateCount("approvedCount", parseInt(document.getElementById("approvedCount").textContent) || 0, approved.length);
-  animateCount("rejectedCount", parseInt(document.getElementById("rejectedCount").textContent) || 0, rejected.length);
+  animateCount("pendingCount", parseInt(document.getElementById("pendingCount").textContent) || 0, myPending.length);
+  animateCount("approvedCount", parseInt(document.getElementById("approvedCount").textContent) || 0, myApproved.length);
+  animateCount("rejectedCount", parseInt(document.getElementById("rejectedCount").textContent) || 0, myRejected.length);
+
+  // Side pane mini stats
+  const myUploadedPending  = allDocs.filter(d => d.uploadedBy === user.username && d.status !== "Fully Approved" && d.status !== "Rejected");
+  const myUploadedApproved = allDocs.filter(d => d.uploadedBy === user.username && d.status === "Fully Approved");
+  const myUploadedRejected = allDocs.filter(d => d.uploadedBy === user.username && d.status === "Rejected");
+  document.getElementById("myPendingCount").textContent = myUploadedPending.length;
+  document.getElementById("myApprovedCount").textContent = myUploadedApproved.length;
+  document.getElementById("myRejectedCount").textContent = myUploadedRejected.length;
+
+  // Activity feed
+  renderActivityFeed(allDocs);
+  renderActionRequired(allDocs);
 
   if (!visible.length) {
-    list.innerHTML = `
-      <div class="empty-state" style="grid-column:1/-1;">
-        <div class="empty-icon">📭</div>
-        <div class="empty-label">No documents found</div>
-        <div class="empty-sub">Try adjusting the search or filter</div>
-      </div>`;
+    list.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">📭</div><div class="empty-label">No documents found</div><div class="empty-sub">Try adjusting the search or filter</div></div>`;
     return;
   }
 
   list.innerHTML = "";
-
   visible.forEach((doc, i) => {
     const card = document.createElement("div");
     card.className = "doc-card";
     card.style.animationDelay = (i * 0.04) + "s";
 
     const statusClass = doc.status === "Fully Approved" ? "approved" : doc.status === "Rejected" ? "rejected" : "pending";
-    const statusLabel = doc.status === "Fully Approved" ? "Fully Approved" : doc.status;
-
     const canAct = doc.flow[doc.currentStep] === user.role && doc.status !== "Rejected" && doc.status !== "Fully Approved";
+    const isMyDoc = doc.uploadedBy === user.username;
 
     const flowHtml = doc.flow.map((step, idx) => {
       let cls = "waiting";
@@ -764,71 +979,169 @@ async function load() {
     }).join('<span style="color:var(--text-muted);font-size:11px;">›</span>');
 
     const signedHtml = doc.signedBy && doc.signedBy.length
-      ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
-           ${doc.signedBy.map(s => `<span class="esign-badge">🔏 ${s}</span>`).join("")}
-         </div>`
-      : "";
+      ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">${doc.signedBy.map(s => `<span class="esign-badge">🔏 ${s}</span>`).join("")}</div>` : "";
 
-    const rejectNote = doc.rejected && (doc.uploadedBy === user.username || user.role === "ADMIN")
-      ? `<div class="rejection-banner">
-           <div class="rejection-banner-header">❌ Rejection Reason</div>
-           <div class="rejection-banner-reason">${doc.rejectionComment || "No reason provided."}</div>
-         </div>` : "";
+    const rejectNote = doc.rejected && (isMyDoc || user.role === "ADMIN")
+      ? `<div class="rejection-banner"><div class="rejection-banner-header">❌ Rejection Reason</div><div class="rejection-banner-reason">${doc.rejectionComment || "No reason provided."}</div></div>` : "";
 
-    const uploadedBy = doc.uploadedBy
-      ? `<div class="doc-meta">Uploaded by: ${doc.uploadedBy}</div>` : "";
+    const myDocBadge = isMyDoc
+      ? `<div class="my-doc-status-bar">
+          <span style="font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">YOUR DOC</span>
+          ${doc.status === "Fully Approved" ? '<span style="color:var(--accent-green);font-size:11px;">✅ Fully Approved</span>' : doc.status === "Rejected" ? '<span style="color:var(--accent-red);font-size:11px;">❌ Rejected</span>' : `<span style="color:var(--accent-amber);font-size:11px;">⏳ ${doc.status}</span>`}
+        </div>` : "";
 
-    const auditHtml = doc.signedBy && doc.signedBy.length
-      ? `<div class="audit-trail">Audit: ${doc.signedBy.join(" → ")}</div>` : "";
-
-    const assignedBadge = doc.assignedTo
-      ? `<div class="assigned-badge">👤 Assigned to: ${doc.assignedTo}</div>` : "";
-
-    const canAssign = (doc.uploadedBy === user.username || user.role === "ADMIN") && doc.status !== "Fully Approved" && doc.status !== "Rejected";
+    const canAssign = (isMyDoc || user.role === "ADMIN") && doc.status !== "Fully Approved" && doc.status !== "Rejected";
+    const assignedBadge = doc.assignedTo ? `<div class="assigned-badge">👤 Assigned to: ${doc.assignedTo}</div>` : "";
 
     card.innerHTML = `
       <div class="doc-card-header">
         <div class="doc-name">${doc.name}</div>
         <span class="doc-type-badge">${doc.type}</span>
       </div>
-      <div>
-        <span class="status-pill ${statusClass}">
-          <span class="status-dot"></span>
-          ${statusLabel}
-        </span>
-      </div>
+      <div><span class="status-pill ${statusClass}"><span class="status-dot"></span>${doc.status === "Fully Approved" ? "Fully Approved" : doc.status}</span></div>
       ${assignedBadge}
       <div class="flow-steps">${flowHtml}</div>
       ${signedHtml}
-      ${auditHtml}
-      ${uploadedBy}
+      ${doc.signedBy && doc.signedBy.length ? `<div class="audit-trail">Audit: ${doc.signedBy.join(" → ")}</div>` : ""}
+      ${doc.uploadedBy ? `<div class="doc-meta">By: ${doc.uploadedBy}</div>` : ""}
       ${rejectNote}
+      ${myDocBadge}
       <div class="doc-actions" style="flex-wrap:wrap;">
-        <button class="btn-view" onclick="openPreview(${JSON.stringify(doc).replace(/"/g,'&quot;')})">👁 View</button>
-        ${canAct ? `
-          <button class="btn btn-primary btn-sm" onclick="openEsign(${doc.id})">🔏 Sign & Approve</button>
-          <button class="btn btn-danger btn-sm" onclick="openReject(${doc.id})">Reject</button>` : ""}
+        <button class="btn-view" onclick='openDocViewer(${JSON.stringify(doc).replace(/'/g,"&#39;")})'>👁 View</button>
+        ${canAct ? `<button class="btn btn-primary btn-sm" onclick="openEsign(${doc.id})">🔏 Sign & Approve</button><button class="btn btn-danger btn-sm" onclick="openReject(${doc.id})">Reject</button>` : ""}
         ${canAssign ? `<button class="assign-btn" onclick="openAssignModal(${doc.id})">📎 Assign</button>` : ""}
       </div>
     `;
-
     list.appendChild(card);
   });
+}
+
+function renderActivityFeed(docs) {
+  const feed = document.getElementById("activityFeed");
+  const recent = [...docs]
+    .filter(d => d.uploadedBy === user.username || d.flow.includes(user.role))
+    .sort((a, b) => (b.uploadedAt||0) > (a.uploadedAt||0) ? 1 : -1)
+    .slice(0, 8);
+
+  if (!recent.length) { feed.innerHTML = `<div style="font-size:12px;color:var(--text-muted);">No recent activity</div>`; return; }
+  feed.innerHTML = recent.map((d, i) => {
+    const isApproved = d.status === "Fully Approved";
+    const isRejected = d.status === "Rejected";
+    const dotCls = isApproved ? "green" : isRejected ? "red" : "amber";
+    const icon = isApproved ? "✅" : isRejected ? "❌" : "⏳";
+    return `<div class="activity-feed-item" style="animation-delay:${i*0.05}s">
+      <div class="activity-dot ${dotCls}"></div>
+      <div>
+        <div class="activity-text">${icon} <strong>${d.name.substring(0,30)}${d.name.length>30?"…":""}</strong></div>
+        <div class="activity-time">${d.status}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderActionRequired(docs) {
+  const feed = document.getElementById("actionRequiredFeed");
+  const actionDocs = docs.filter(d => d.flow[d.currentStep] === user.role && d.status !== "Fully Approved" && d.status !== "Rejected");
+  if (!actionDocs.length) { feed.innerHTML = `<div style="font-size:12px;color:var(--text-muted);">Nothing pending from you 🎉</div>`; return; }
+  feed.innerHTML = actionDocs.slice(0,5).map(d => `
+    <div class="activity-feed-item" style="border-color:rgba(245,158,11,0.25);">
+      <div class="activity-dot amber"></div>
+      <div style="flex:1;">
+        <div class="activity-text"><strong>${d.name.substring(0,28)}${d.name.length>28?"…":""}</strong></div>
+        <div class="activity-time">Waiting for your signature</div>
+      </div>
+      <button class="btn btn-primary btn-sm" style="font-size:10px;padding:4px 8px;" onclick="openEsign(${d.id})">Sign</button>
+    </div>`).join("");
 }
 
 function animateCount(id, from, to) {
   const el = document.getElementById(id);
   if (from === to) { el.textContent = to; return; }
-  const dur = 600, step = 16;
-  const diff = to - from, steps = dur / step;
-  let cur = from, cnt = 0;
+  const dur = 600, step = 16, steps = dur/step;
+  let cnt = 0;
   const timer = setInterval(() => {
-    cnt++;
-    cur = Math.round(from + (diff * (cnt / steps)));
-    el.textContent = cur;
+    cnt++; el.textContent = Math.round(from + ((to-from)*(cnt/steps)));
     if (cnt >= steps) { el.textContent = to; clearInterval(timer); }
   }, step);
 }
+
+/* ══════════════════════════════════════════════
+   DOCUMENT VIEWER
+══════════════════════════════════════════════ */
+function getFileIcon(name) {
+  const ext = (name.split('.').pop()||"").toLowerCase();
+  if (["jpg","jpeg","png","gif","webp","svg"].includes(ext)) return "🖼️";
+  if (ext === "pdf") return "📕";
+  if (["doc","docx"].includes(ext)) return "📘";
+  return "📄";
+}
+
+function openDocViewer(doc) {
+  const modal = document.getElementById("docViewerModal");
+  document.getElementById("dvIcon").textContent = getFileIcon(doc.name);
+  document.getElementById("dvFileName").textContent = doc.name;
+
+  const ext = (doc.name.split('.').pop()||"").toLowerCase();
+  const isImage = ["jpg","jpeg","png","gif","webp","svg"].includes(ext);
+  const isPdf = ext === "pdf";
+
+  const body = document.getElementById("dvBody");
+  const fileUrl = `/uploads/${doc.file || doc.name}`;
+
+  // Download button
+  const dlBtn = document.getElementById("dvDownloadBtn");
+  dlBtn.href = fileUrl;
+  dlBtn.download = doc.name;
+
+  if (isImage) {
+    body.innerHTML = `<img src="${fileUrl}" alt="${doc.name}" onerror="this.parentNode.innerHTML='<div style=\\'text-align:center;color:var(--text-muted);padding:40px;\\'><div style=\\'font-size:48px;margin-bottom:12px;\\'>🖼️</div><div>${doc.name}</div><div style=\\'margin-top:8px;font-size:13px;\\'>Image stored on server — use download to view</div></div>'">`;
+  } else if (isPdf) {
+    body.innerHTML = `<iframe src="${fileUrl}" title="${doc.name}" onerror="this.style.display='none'"></iframe>`;
+    // Fallback if iframe fails
+    setTimeout(() => {
+      const iframe = body.querySelector("iframe");
+      if (iframe) {
+        iframe.onerror = () => {
+          body.innerHTML = pdfFallback(doc);
+        };
+      }
+    }, 100);
+  } else {
+    body.innerHTML = pdfFallback(doc);
+  }
+
+  // Meta bar
+  const ts = doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleString() : "—";
+  document.getElementById("dvMeta").innerHTML = `
+    <div class="doc-viewer-meta-item"><strong>Type:</strong> ${doc.type}</div>
+    <div class="doc-viewer-meta-item"><strong>Status:</strong> ${doc.status}</div>
+    <div class="doc-viewer-meta-item"><strong>By:</strong> ${doc.uploadedBy||"—"}</div>
+    <div class="doc-viewer-meta-item"><strong>Date:</strong> ${ts}</div>
+    ${doc.signedBy&&doc.signedBy.length ? `<div class="doc-viewer-meta-item"><strong>Signed by:</strong> ${doc.signedBy.join(", ")}</div>` : ""}
+    ${doc.rejectionComment ? `<div class="doc-viewer-meta-item" style="color:var(--accent-red);"><strong>Rejection:</strong> ${doc.rejectionComment}</div>` : ""}
+  `;
+
+  modal.classList.add("open");
+}
+
+function pdfFallback(doc) {
+  const fileUrl = `/uploads/${doc.file || doc.name}`;
+  return `<div style="text-align:center;color:var(--text-muted);padding:40px;">
+    <div style="font-size:56px;margin-bottom:12px;">${getFileIcon(doc.name)}</div>
+    <div style="font-size:16px;font-weight:700;color:var(--text-secondary);margin-bottom:8px;">${doc.name}</div>
+    <div style="font-size:13px;margin-bottom:20px;">This file type can't be previewed inline.</div>
+    <a href="${fileUrl}" download="${doc.name}" class="btn btn-primary">⬇ Download to View</a>
+  </div>`;
+}
+
+function closeDocViewer() {
+  document.getElementById("docViewerModal").classList.remove("open");
+  document.getElementById("dvBody").innerHTML = "";
+}
+
+document.getElementById("docViewerModal").addEventListener("click", function(e) {
+  if (e.target === this) closeDocViewer();
+});
 
 /* ══════════════════════════════════════════════
    E-SIGN
@@ -840,11 +1153,7 @@ function openEsign(id) {
   document.getElementById("esignModal").classList.add("open");
   setTimeout(() => document.getElementById("esignPin").focus(), 100);
 }
-
-function closeEsignModal() {
-  document.getElementById("esignModal").classList.remove("open");
-  esignDocId = null;
-}
+function closeEsignModal() { document.getElementById("esignModal").classList.remove("open"); esignDocId = null; }
 
 document.getElementById("esignPin").addEventListener("input", async function() {
   const pin = this.value;
@@ -861,101 +1170,48 @@ document.getElementById("esignPin").addEventListener("input", async function() {
 async function sha256(message) {
   const msgBuffer = new TextEncoder().encode(message);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
 async function submitEsign() {
   const pin = document.getElementById("esignPin").value;
-  if (!pin || pin.length < 4) {
-    showToast("PIN must be at least 4 characters", "warn");
-    return;
-  }
-
+  if (!pin || pin.length < 4) { showToast("PIN must be at least 4 characters", "warn"); return; }
   const signature = await sha256(user.username + ":" + user.role + ":" + pin + ":" + esignDocId);
-
-  const res = await fetch("/approve", {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({ id: esignDocId, role: user.role, signature })
-  });
-
+  const res = await fetch("/approve", { method:"POST", headers:getHeaders(), body:JSON.stringify({ id:esignDocId, role:user.role, signature }) });
   if (res.ok) {
+    playSoundSign();
     showToast("Document signed and approved ✅", "success");
     pushNotif(`You signed document #${esignDocId} as ${user.role}`);
-    closeEsignModal();
-    load();
-  } else {
-    showToast("Approval failed", "error");
-  }
+    closeEsignModal(); load();
+  } else { showToast("Approval failed", "error"); }
 }
 
 /* ══════════════════════════════════════════════
    REJECT
 ══════════════════════════════════════════════ */
-function openReject(id) {
-  rejectId = id;
-  document.getElementById("rejectInput").value = "";
-  document.getElementById("rejectModal").classList.add("open");
-}
-
-function closeRejectModal() {
-  document.getElementById("rejectModal").classList.remove("open");
-  rejectId = null;
-}
-
+function openReject(id) { rejectId = id; document.getElementById("rejectInput").value = ""; document.getElementById("rejectModal").classList.add("open"); }
+function closeRejectModal() { document.getElementById("rejectModal").classList.remove("open"); rejectId = null; }
 async function submitReject() {
   const comment = document.getElementById("rejectInput").value.trim();
   if (!comment) { showToast("Enter a rejection reason", "warn"); return; }
-
-  await fetch("/reject", {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({ id: rejectId, role: user.role, comment })
-  });
-
+  await fetch("/reject", { method:"POST", headers:getHeaders(), body:JSON.stringify({ id:rejectId, role:user.role, comment }) });
+  playSoundReject();
   showToast("Document rejected", "error");
   pushNotif(`You rejected document #${rejectId}: "${comment.slice(0,40)}"`);
-  closeRejectModal();
-  load();
+  closeRejectModal(); load();
 }
 
-// Close modals on overlay click
-document.getElementById("rejectModal").addEventListener("click", function(e) {
-  if (e.target === this) closeRejectModal();
-});
-document.getElementById("esignModal").addEventListener("click", function(e) {
-  if (e.target === this) closeEsignModal();
-});
+document.getElementById("rejectModal").addEventListener("click", function(e) { if (e.target === this) closeRejectModal(); });
+document.getElementById("esignModal").addEventListener("click", function(e) { if (e.target === this) closeEsignModal(); });
 
 /* ══════════════════════════════════════════════
    UPLOAD
 ══════════════════════════════════════════════ */
-function handleDragOver(e) {
-  e.preventDefault();
-  document.getElementById("uploadZone").classList.add("drag-over");
-}
-function handleDragLeave() {
-  document.getElementById("uploadZone").classList.remove("drag-over");
-}
-function handleDrop(e) {
-  e.preventDefault();
-  handleDragLeave();
-  if (e.dataTransfer.files[0]) {
-    document.getElementById("file").files = e.dataTransfer.files;
-    showFilePreview(e.dataTransfer.files[0].name);
-  }
-}
-
-function previewFile(e) {
-  if (e.target.files[0]) showFilePreview(e.target.files[0].name);
-}
-
-function showFilePreview(name) {
-  const p = document.getElementById("filePreview");
-  document.getElementById("filePreviewName").textContent = name;
-  p.style.display = "flex";
-}
+function handleDragOver(e) { e.preventDefault(); document.getElementById("uploadZone").classList.add("drag-over"); }
+function handleDragLeave() { document.getElementById("uploadZone").classList.remove("drag-over"); }
+function handleDrop(e) { e.preventDefault(); handleDragLeave(); if (e.dataTransfer.files[0]) { document.getElementById("file").files = e.dataTransfer.files; showFilePreview(e.dataTransfer.files[0].name); } }
+function previewFile(e) { if (e.target.files[0]) showFilePreview(e.target.files[0].name); }
+function showFilePreview(name) { const p = document.getElementById("filePreview"); document.getElementById("filePreviewName").textContent = name; p.style.display = "flex"; }
 
 async function loadWorkflowsForUpload() {
   try {
@@ -963,11 +1219,10 @@ async function loadWorkflowsForUpload() {
     const wfs = await res.json();
     const sel = document.getElementById("uploadWorkflow");
     sel.innerHTML = `<option value="">Auto-detect from filename</option>`;
-    wfs.forEach(w => {
-      const o = document.createElement("option");
-      o.value = w.type; o.textContent = w.type;
-      sel.appendChild(o);
-    });
+    wfs.forEach(w => { const o = document.createElement("option"); o.value = w.type; o.textContent = w.type; sel.appendChild(o); });
+    // Hints
+    const hints = document.getElementById("uploadWorkflowHints");
+    if (hints) hints.innerHTML = wfs.map(w => `<span class="workflow-step">${w.type}</span>`).join("");
   } catch(e) {}
 }
 
@@ -977,40 +1232,27 @@ async function loadRolesForUpload() {
     const roles = await res.json();
     const sel = document.getElementById("uploadRole");
     sel.innerHTML = `<option value="">No override — use workflow</option>`;
-    roles.forEach(r => {
-      const o = document.createElement("option");
-      o.value = r; o.textContent = r;
-      sel.appendChild(o);
-    });
+    roles.forEach(r => { const o = document.createElement("option"); o.value = r; o.textContent = r; sel.appendChild(o); });
   } catch(e) {}
 }
 
 async function upload() {
   const file = document.getElementById("file").files[0];
   if (!file) { showToast("Select a file first", "warn"); return; }
-
   const wfOverride = document.getElementById("uploadWorkflow").value;
   const roleOverride = document.getElementById("uploadRole").value;
-
   const fd = new FormData();
   fd.append("file", file);
   if (wfOverride) fd.append("workflow", wfOverride);
   if (roleOverride) fd.append("targetRole", roleOverride);
-
-  const res = await fetch("/upload", {
-    method: "POST",
-    headers: token ? { "authorization": token } : {},
-    body: fd
-  });
-
+  const res = await fetch("/upload", { method:"POST", headers: token ? { "authorization": token } : {}, body: fd });
   if (res.ok) {
+    playSoundUpload();
     showToast("Document uploaded successfully", "success");
     pushNotif(`Uploaded "${file.name}" — awaiting review`);
     document.getElementById("file").value = "";
     document.getElementById("filePreview").style.display = "none";
-  } else {
-    showToast("Upload failed", "error");
-  }
+  } else { showToast("Upload failed", "error"); }
 }
 
 /* ══════════════════════════════════════════════
@@ -1020,40 +1262,24 @@ async function createWorkflow() {
   const type = document.getElementById("type").value.trim().toLowerCase();
   const flowRaw = document.getElementById("flow").value.trim();
   const flow = flowRaw.split(",").map(s => s.trim()).filter(Boolean);
-
   if (!type || !flow.length) { showToast("Enter valid type and flow", "warn"); return; }
-
-  await fetch("/create-workflow", {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({ type, flow })
-  });
-
-  document.getElementById("type").value = "";
-  document.getElementById("flow").value = "";
-  showToast("Workflow created", "success");
-  loadWorkflows();
+  await fetch("/create-workflow", { method:"POST", headers:getHeaders(), body:JSON.stringify({ type, flow }) });
+  document.getElementById("type").value = ""; document.getElementById("flow").value = "";
+  showToast("Workflow created", "success"); loadWorkflows();
 }
 
 async function loadWorkflows() {
   const res = await fetch("/workflows", { headers: getHeaders(false) });
   const wfs = await res.json();
   const el = document.getElementById("workflowList");
-  if (!wfs.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-label">No workflows yet</div></div>`;
-    return;
-  }
+  if (!wfs.length) { el.innerHTML = `<div class="empty-state"><div class="empty-label">No workflows yet</div></div>`; return; }
   el.innerHTML = wfs.map((w,i) => `
     <div class="workflow-item" style="animation-delay:${i*0.05}s">
       <div class="workflow-type">${w.type}</div>
       <div class="workflow-flow">
-        ${w.flow.map((s,idx) => `
-          ${idx ? '<span class="workflow-arrow">›</span>' : ''}
-          <span class="workflow-step">${s}</span>
-        `).join("")}
+        ${w.flow.map((s,idx) => `${idx ? '<span class="workflow-arrow">›</span>' : ''}<span class="workflow-step">${s}</span>`).join("")}
       </div>
-    </div>
-  `).join("");
+    </div>`).join("");
 }
 
 /* ══════════════════════════════════════════════
@@ -1062,102 +1288,227 @@ async function loadWorkflows() {
 async function createRole() {
   const role = document.getElementById("roleInput").value.trim().toUpperCase();
   if (!role) { showToast("Enter role name", "warn"); return; }
-
-  await fetch("/create-role", {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({ role, institute: user.institute })
-  });
-
+  await fetch("/create-role", { method:"POST", headers:getHeaders(), body:JSON.stringify({ role, institute: user.institute }) });
   document.getElementById("roleInput").value = "";
-  showToast("Role added", "success");
-  loadRoles();
-  loadRolesIntoDropdown();
+  showToast("Role added", "success"); loadUsersSection();
 }
 
-async function loadRoles() {
+async function getRoles() {
   const res = await fetch(`/roles/${user.institute}`, { headers: getHeaders(false) });
-  const roles = await res.json();
-  document.getElementById("roleList").innerHTML = roles
-    .map(r => `<span class="role-tag">${r}</span>`)
-    .join("");
-}
-
-async function loadRolesIntoDropdown() {
-  const res = await fetch(`/roles/${user.institute}`, { headers: getHeaders(false) });
-  const roles = await res.json();
-  const sel = document.getElementById("roleSelect");
-  sel.innerHTML = `<option value="" disabled selected>Select Role</option>`;
-  roles.filter(r => r !== "ADMIN").forEach(r => {
-    const o = document.createElement("option");
-    o.value = r; o.textContent = r;
-    sel.appendChild(o);
-  });
+  return res.json();
 }
 
 /* ══════════════════════════════════════════════
-   USERS
+   USERS SECTION v2 — role-grouped + detail pane
 ══════════════════════════════════════════════ */
+async function loadUsersSection() {
+  await loadRolesIntoDropdown();
+  await loadRoleGroupedUsers();
+}
+
+async function loadRolesIntoDropdown() {
+  try {
+    const roles = await getRoles();
+    const sel = document.getElementById("roleSelect");
+    if (sel) { sel.innerHTML = `<option value="" disabled selected>Select Role</option>`; roles.filter(r => r !== "ADMIN").forEach(r => { const o = document.createElement("option"); o.value = r; o.textContent = r; sel.appendChild(o); }); }
+  } catch(e) {}
+}
+
+async function loadRoleGroupedUsers() {
+  try {
+    const [usersRes, roles] = await Promise.all([
+      fetch(`/users/${user.institute}`, { headers: getHeaders(false) }),
+      getRoles()
+    ]);
+    allUsers = await usersRes.json();
+
+    // Pending banner
+    const pending = allUsers.filter(u => u.role === "PENDING");
+    const banner = document.getElementById("pendingUsersBanner");
+    if (pending.length > 0) {
+      banner.style.display = "block";
+      banner.innerHTML = `<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:var(--radius-md);padding:12px 14px;">
+        <div style="font-size:11px;color:var(--accent-amber);font-weight:700;font-family:'JetBrains Mono',monospace;margin-bottom:8px;">⏳ PENDING APPROVAL (${pending.length})</div>
+        ${pending.map(u => `<div class="user-card-v2" style="margin-bottom:6px;">
+          <div class="user-avatar-v2" style="background:linear-gradient(135deg,#f59e0b,#d97706);">${u.username[0].toUpperCase()}</div>
+          <div class="user-card-info"><div class="user-card-name">${u.username}</div><div class="user-card-email">${u.email||"—"}</div></div>
+          <div class="user-card-actions">
+            <button class="btn btn-primary btn-sm" onclick="promptApproveUser('${u.username}')">✓</button>
+            <button class="btn btn-danger btn-sm" onclick="doRejectUser('${u.username}')">✗</button>
+          </div>
+        </div>`).join("")}
+      </div>`;
+    } else { banner.style.display = "none"; }
+
+    // Role groups
+    const container = document.getElementById("roleGroupedUsers");
+    const allRoles = [...roles, "ADMIN"];
+    container.innerHTML = allRoles.map(role => {
+      const roleUsers = allUsers.filter(u => u.role === role);
+      return `<div class="role-group" id="rg_${role}">
+        <div class="role-group-header" onclick="toggleRoleGroup('${role}')">
+          <span class="role-group-name">${role}</span>
+          <span class="role-group-count">${roleUsers.length} user${roleUsers.length !== 1 ? "s" : ""}</span>
+          <span class="role-group-chevron">▾</span>
+        </div>
+        <div class="role-group-body">
+          ${roleUsers.length ? roleUsers.map(u => userCardHtml(u)).join("") :
+            `<div style="font-size:12px;color:var(--text-muted);padding:8px 12px;">No users with this role</div>`}
+        </div>
+      </div>`;
+    }).join("");
+
+  } catch(e) { console.error(e); }
+}
+
+function userCardHtml(u) {
+  const pfp = getPfp(u.username);
+  const avatarStyle = pfp ? "" : `background:linear-gradient(135deg,var(--accent-teal),var(--accent-violet));`;
+  return `<div class="user-card-v2" id="ucard_${u.username}" onclick="selectUser('${u.username}')">
+    <div class="user-avatar-v2" style="${avatarStyle}">
+      ${pfp ? `<img src="${pfp}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0;">` : u.username[0].toUpperCase()}
+    </div>
+    <div class="user-card-info">
+      <div class="user-card-name">${u.username}</div>
+      <div class="user-card-role">${u.role}</div>
+      <div class="user-card-email">${u.email||""}</div>
+    </div>
+    <div class="user-card-actions" onclick="event.stopPropagation();">
+      <button class="btn btn-danger btn-sm" onclick="doDeleteUser('${u.username}')" title="Remove">✕</button>
+    </div>
+  </div>`;
+}
+
+function toggleRoleGroup(role) {
+  const grp = document.getElementById("rg_" + role);
+  if (grp) grp.classList.toggle("collapsed");
+}
+
+function toggleCreateUserPanel() {
+  const p = document.getElementById("createUserPanel");
+  p.style.display = p.style.display === "none" ? "block" : "none";
+}
+
+async function selectUser(username) {
+  selectedUserId = username;
+  document.querySelectorAll(".user-card-v2").forEach(c => c.classList.remove("selected"));
+  const card = document.getElementById("ucard_" + username);
+  if (card) card.classList.add("selected");
+
+  const uData = allUsers.find(u => u.username === username);
+  if (!uData) return;
+
+  // Compute doc stats for this user
+  let docsRes = [];
+  try {
+    const r = await fetch("/documents", { headers: getHeaders(false) });
+    docsRes = await r.json();
+  } catch(e) {}
+
+  const userDocs = docsRes.filter(d => d.uploadedBy === username);
+  const userPending  = userDocs.filter(d => d.status !== "Fully Approved" && d.status !== "Rejected");
+  const userApproved = userDocs.filter(d => d.status === "Fully Approved");
+  const userRejected = userDocs.filter(d => d.status === "Rejected");
+
+  const pfp = getPfp(username);
+  const avatarContent = pfp ? `<img src="${pfp}">` : username[0].toUpperCase();
+
+  document.getElementById("userDetailEmpty").style.display = "none";
+  const panel = document.getElementById("userDetailPanel");
+  panel.style.display = "block";
+  panel.innerHTML = `
+    <div class="user-detail-panel">
+      <div class="udp-header">
+        <div class="udp-avatar" onclick="triggerPfpForUser('${username}')" title="Click to change photo">
+          ${avatarContent}
+          <div class="upload-hint">📷</div>
+        </div>
+        <div>
+          <div class="udp-name">${username}</div>
+          <div class="udp-role-badge">${uData.role}</div>
+          <div class="udp-email">${uData.email||"No email on file"}</div>
+          <div style="display:flex;gap:8px;margin-top:12px;">
+            ${uData.role === "PENDING" ? `
+              <button class="btn btn-primary btn-sm" onclick="promptApproveUser('${username}')">✓ Approve</button>
+              <button class="btn btn-danger btn-sm" onclick="doRejectUser('${username}')">✗ Reject</button>
+            ` : `<button class="btn btn-danger btn-sm" onclick="doDeleteUser('${username}')">Remove User</button>`}
+          </div>
+        </div>
+      </div>
+      <div class="udp-stats-row">
+        <div class="udp-stat"><div class="udp-stat-val amber">${userPending.length}</div><div class="udp-stat-label">Pending</div></div>
+        <div class="udp-stat"><div class="udp-stat-val green">${userApproved.length}</div><div class="udp-stat-label">Approved</div></div>
+        <div class="udp-stat"><div class="udp-stat-val red">${userRejected.length}</div><div class="udp-stat-label">Rejected</div></div>
+      </div>
+      <div class="udp-docs-section">
+        <div class="side-pane-title" style="margin-bottom:10px;">Documents (${userDocs.length})</div>
+        ${userDocs.length ? userDocs.slice(0,10).map(d => `
+          <div class="udp-doc-mini">
+            <div class="udp-doc-name">${d.name}</div>
+            <span class="status-pill ${d.status==="Fully Approved"?"approved":d.status==="Rejected"?"rejected":"pending"}" style="font-size:10px;padding:2px 8px;">
+              <span class="status-dot"></span>${d.status==="Fully Approved"?"Approved":d.status==="Rejected"?"Rejected":"Pending"}
+            </span>
+          </div>`).join("") :
+          `<div class="udp-empty">No documents uploaded</div>`}
+      </div>
+    </div>
+  `;
+}
+
+let pfpTargetUser = null;
+function triggerPfpForUser(username) {
+  pfpTargetUser = username;
+  document.getElementById("pfpInput").onchange = (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      profilePictures[pfpTargetUser] = ev.target.result;
+      localStorage.setItem("venatrix_pfps", JSON.stringify(profilePictures));
+      if (pfpTargetUser === user.username) refreshAvatars();
+      selectUser(pfpTargetUser); // re-render detail
+      loadRoleGroupedUsers();    // re-render cards
+      showToast("Profile picture updated!", "success");
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+  document.getElementById("pfpInput").click();
+}
+
+async function promptApproveUser(username) {
+  const role = prompt("Enter role for this user (e.g. HOD, DEAN):");
+  if (!role) return;
+  const res = await fetch("/approve-user", { method:"POST", headers:getHeaders(), body:JSON.stringify({ username, institute:user.institute, role }) });
+  if (!res.ok) { showToast(await res.text(), "error"); return; }
+  showToast("User approved", "success");
+  pushNotif(`Approved user "${username}" with role ${role.toUpperCase()}`);
+  loadUsersSection();
+}
+
+async function doRejectUser(username) {
+  if (!confirm(`Reject signup from "${username}"?`)) return;
+  const res = await fetch("/reject-user", { method:"POST", headers:getHeaders(), body:JSON.stringify({ username, institute:user.institute }) });
+  if (res.ok) { showToast("User rejected", "warn"); loadUsersSection(); if (selectedUserId === username) { document.getElementById("userDetailPanel").style.display = "none"; document.getElementById("userDetailEmpty").style.display = "block"; } }
+  else showToast(await res.text(), "error");
+}
+
+async function doDeleteUser(username) {
+  if (!confirm(`Remove user "${username}" permanently?`)) return;
+  const res = await fetch("/delete-user", { method:"POST", headers:getHeaders(), body:JSON.stringify({ username, institute:user.institute }) });
+  if (res.ok) { showToast("User removed", "warn"); loadUsersSection(); if (selectedUserId === username) { document.getElementById("userDetailPanel").style.display = "none"; document.getElementById("userDetailEmpty").style.display = "block"; } }
+  else showToast(await res.text(), "error");
+}
+
 async function createUser() {
   const username = document.getElementById("newUser").value.trim();
   const password = document.getElementById("newPass").value;
   const role = document.getElementById("roleSelect").value;
-
   if (!username || !password || !role) { showToast("Fill all fields", "warn"); return; }
-
-  const res = await fetch("/create-user", {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({ username, password, role, institute: user.institute })
-  });
-
-  if (!res.ok) {
-    showToast(await res.text(), "error");
-    return;
-  }
-
-  showToast("User created", "success");
-  document.getElementById("newUser").value = "";
-  document.getElementById("newPass").value = "";
-  loadUsers();
-}
-
-async function loadUsers() {
-  const res = await fetch(`/users/${user.institute}`, { headers: getHeaders(false) });
-  const users = await res.json();
-  const list = document.getElementById("userList");
-  list.innerHTML = users.map((u, i) => {
-    const isPending = u.role === "PENDING";
-    return `
-      <div class="user-list-item ${isPending ? 'user-list-pending' : ''}" style="animation-delay:${i*0.04}s">
-        <div class="user-list-avatar">${u.username[0].toUpperCase()}</div>
-        <div style="flex:1">
-          <div class="user-list-name">${u.username}</div>
-          <div class="user-list-role">${u.role}</div>
-        </div>
-        ${isPending
-          ? `<button class="btn btn-primary btn-sm" onclick="approveUser('${u.username}')">Approve</button>`
-          : `<span style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">${u.email || ''}</span>`
-        }
-      </div>
-    `;
-  }).join("");
-}
-
-async function approveUser(username) {
-  const role = prompt("Enter role for this user (e.g. HOD):");
-  if (!role) return;
-
-  const res = await fetch("/approve-user", {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({ username, institute: user.institute, role })
-  });
-
+  const res = await fetch("/create-user", { method:"POST", headers:getHeaders(), body:JSON.stringify({ username, password, role, institute:user.institute }) });
   if (!res.ok) { showToast(await res.text(), "error"); return; }
-  showToast("User approved", "success");
-  pushNotif(`Approved user "${username}" with role ${role}`);
-  loadUsers();
+  showToast("User created", "success");
+  document.getElementById("newUser").value = ""; document.getElementById("newPass").value = "";
+  toggleCreateUserPanel(); loadUsersSection();
 }
 
 /* ══════════════════════════════════════════════
@@ -1180,185 +1531,162 @@ function renderKeyUI(data) {
   document.getElementById("noKeyArea").style.display       = hasKey ? "none" : "block";
   document.getElementById("genKeyBtn").style.display       = hasKey ? "none" : "inline-flex";
   document.getElementById("regenKeyBtn").style.display     = hasKey ? "inline-flex" : "none";
-
   if (hasKey) {
-    document.getElementById("keyPublicValue").textContent    = data.publicKey;
-    document.getElementById("keyFingerprintValue").textContent = "Fingerprint: " + (data.fingerprint || "—");
+    document.getElementById("keyPublicValue").textContent   = data.publicKey;
+    document.getElementById("keyFingerprintValue").textContent = "Fingerprint: " + (data.fingerprint||"—");
     document.getElementById("sidebarKeyDisplay").textContent  = data.publicKey;
   } else {
     document.getElementById("sidebarKeyDisplay").textContent = "Not generated";
   }
+
+  // Cooldown check
+  const lastGen = localStorage.getItem("venatrix_keygen_" + user.username);
+  const cooldown = document.getElementById("keyCooldownBanner");
+  const regenBtn = document.getElementById("regenKeyBtn");
+  if (lastGen) {
+    const elapsed = Date.now() - parseInt(lastGen);
+    const remaining = 24 * 3600 * 1000 - elapsed;
+    if (remaining > 0 && hasKey) {
+      const hrs = Math.floor(remaining / 3600000);
+      const mins = Math.floor((remaining % 3600000) / 60000);
+      cooldown.style.display = "flex";
+      document.getElementById("keyCooldownText").textContent = `Key regeneration available in ${hrs}h ${mins}m`;
+      regenBtn.disabled = true;
+      regenBtn.style.opacity = "0.5";
+    } else {
+      cooldown.style.display = "none";
+      if (regenBtn) { regenBtn.disabled = false; regenBtn.style.opacity = "1"; }
+    }
+  }
 }
 
 async function generateKey() {
+  // Check cooldown
+  const lastGen = localStorage.getItem("venatrix_keygen_" + user.username);
+  if (lastGen) {
+    const elapsed = Date.now() - parseInt(lastGen);
+    if (elapsed < 24 * 3600 * 1000) {
+      const remaining = 24 * 3600 * 1000 - elapsed;
+      const hrs = Math.floor(remaining / 3600000);
+      const mins = Math.floor((remaining % 3600000) / 60000);
+      showToast(`Key regeneration available in ${hrs}h ${mins}m`, "warn");
+      return;
+    }
+  }
+
   const btn = document.getElementById("genKeyBtn");
   const btn2 = document.getElementById("regenKeyBtn");
-  btn.textContent = "Generating…";
-  btn.disabled = true;
-  btn2.disabled = true;
+  if (btn) { btn.textContent = "Generating…"; btn.disabled = true; }
+  if (btn2) { btn2.disabled = true; }
 
   try {
-    const res = await fetch("/generate-key", {
-      method: "POST",
-      headers: getHeaders()
-    });
+    const res = await fetch("/generate-key", { method:"POST", headers:getHeaders() });
     const data = await res.json();
     mySigningKey = data.publicKey;
+    localStorage.setItem("venatrix_keygen_" + user.username, Date.now().toString());
     renderKeyUI(data);
+    playSoundSign();
     showToast("Signing key generated ✅", "success");
-  } catch(e) {
-    showToast("Failed to generate key", "error");
-  }
+  } catch(e) { showToast("Failed to generate key", "error"); }
 
-  btn.textContent = "⚡ Generate Signing Key";
-  btn.disabled = false;
-  btn2.disabled = false;
+  if (btn) { btn.textContent = "⚡ Generate Signing Key"; btn.disabled = false; }
+  if (btn2) { btn2.disabled = false; }
 }
 
 /* ══════════════════════════════════════════════
-   GLASS DOCUMENT PREVIEW
+   ASSIGN DOCUMENT (role-aware)
 ══════════════════════════════════════════════ */
-let previewFullscreen = false;
-
-function getFileIcon(name) {
-  const ext = (name.split('.').pop() || "").toLowerCase();
-  if (["jpg","jpeg","png","gif","webp","svg"].includes(ext)) return "🖼️";
-  if (ext === "pdf") return "📕";
-  if (["doc","docx"].includes(ext)) return "📘";
-  if (["xls","xlsx"].includes(ext)) return "📗";
-  if (["ppt","pptx"].includes(ext)) return "📙";
-  return "📄";
-}
-
-function isImageFile(name) {
-  const ext = (name.split('.').pop() || "").toLowerCase();
-  return ["jpg","jpeg","png","gif","webp","svg"].includes(ext);
-}
-
-function openPreview(doc) {
-  const overlay = document.getElementById("docPreviewOverlay");
-  document.getElementById("previewFileName").textContent = doc.name;
-  document.getElementById("previewIcon").textContent     = getFileIcon(doc.name);
-  document.getElementById("previewPlaceholderName").textContent = doc.name;
-  previewFullscreen = false;
-  document.getElementById("docPreviewGlass").classList.remove("fullscreen");
-
-  // Build meta strip
-  const ts = doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleString() : "—";
-  document.getElementById("previewMeta").innerHTML = `
-    <div class="doc-preview-meta-item"><strong>Type:</strong> ${doc.type}</div>
-    <div class="doc-preview-meta-item"><strong>Status:</strong> ${doc.status}</div>
-    <div class="doc-preview-meta-item"><strong>Uploaded by:</strong> ${doc.uploadedBy || "—"}</div>
-    <div class="doc-preview-meta-item"><strong>Date:</strong> ${ts}</div>
-    ${doc.signedBy && doc.signedBy.length ? `<div class="doc-preview-meta-item"><strong>Signed by:</strong> ${doc.signedBy.join(", ")}</div>` : ""}
-  `;
-
-  // Preview body — show image if possible, otherwise placeholder
-  const body = document.getElementById("previewBody");
-  body.innerHTML = `
-    <div class="doc-preview-placeholder">
-      <div class="ph-icon">${getFileIcon(doc.name)}</div>
-      <div class="ph-name">${doc.name}</div>
-      <div class="ph-sub" style="margin-bottom:16px;">File stored on server — use download to view full content</div>
-      ${doc.rejected ? `<div style="background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.3);border-radius:8px;padding:12px 16px;max-width:400px;text-align:left;margin-top:12px;">
-        <div style="font-size:11px;color:var(--accent-red);font-weight:700;margin-bottom:6px;font-family:'JetBrains Mono',monospace;">REJECTED — REASON:</div>
-        <div style="font-size:13px;color:var(--text-secondary);">${doc.rejectionComment || "No reason provided"}</div>
-      </div>` : ""}
-    </div>
-  `;
-
-  // Show
-  overlay.classList.add("visible");
-  document.body.style.overflow = "hidden";
-}
-
-function closePreview() {
-  document.getElementById("docPreviewOverlay").classList.remove("visible");
-  document.body.style.overflow = "";
-  previewFullscreen = false;
-}
-
-function closePreviewOnBackdrop(e) {
-  if (e.target === document.getElementById("docPreviewOverlay") ||
-      e.target.classList.contains("doc-preview-backdrop")) {
-    closePreview();
-  }
-}
-
-function toggleFullscreen() {
-  previewFullscreen = !previewFullscreen;
-  document.getElementById("docPreviewGlass").classList.toggle("fullscreen", previewFullscreen);
-}
-
-document.addEventListener("keydown", function(e) {
-  if (e.key === "Escape") {
-    closePreview();
-    closeAssignModal();
-  }
-});
-
-/* ══════════════════════════════════════════════
-   ASSIGN DOCUMENT
-══════════════════════════════════════════════ */
-let assignDocId = null;
-
 async function openAssignModal(docId) {
   assignDocId = docId;
   document.getElementById("assignUserInput").value = "";
   document.getElementById("assignModal").classList.add("open");
 
-  // Load users into datalist
+  const roleList = document.getElementById("assignRoleList");
+  roleList.innerHTML = `<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;font-family:'JetBrains Mono',monospace;">ASSIGN TO ROLE</div>`;
+
   try {
-    const res = await fetch(`/users/${user.institute}`, { headers: getHeaders(false) });
-    const users = await res.json();
+    const [roles, usersRes] = await Promise.all([
+      getRoles(),
+      fetch(`/users/${user.institute}`, { headers: getHeaders(false) })
+    ]);
+    const users = await usersRes.json();
     const dl = document.getElementById("assignUsersList");
     dl.innerHTML = users.map(u => `<option value="${u.username}">`).join("");
-  } catch(e) {}
 
+    roleList.innerHTML += roles.filter(r => r !== "ADMIN").map(role => {
+      const roleUsers = users.filter(u => u.role === role);
+      const names = roleUsers.map(u => u.username).join(", ");
+      return `<div class="assign-role-item" onclick="selectAssignRole('${role}')">
+        <div>
+          <div style="font-size:13px;font-weight:600;">${role}</div>
+          ${names ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${names}</div>` : ""}
+        </div>
+      </div>`;
+    }).join("");
+  } catch(e) {}
   setTimeout(() => document.getElementById("assignUserInput").focus(), 100);
 }
 
-function closeAssignModal() {
-  document.getElementById("assignModal").classList.remove("open");
-  assignDocId = null;
+function selectAssignRole(role) {
+  document.querySelectorAll(".assign-role-item").forEach(el => el.classList.remove("selected"));
+  event.currentTarget.classList.add("selected");
+  document.getElementById("assignUserInput").value = role;
 }
+
+function closeAssignModal() { document.getElementById("assignModal").classList.remove("open"); assignDocId = null; }
 
 async function submitAssign() {
   const assignTo = document.getElementById("assignUserInput").value.trim();
-  if (!assignTo) { showToast("Enter a username", "warn"); return; }
-
-  const res = await fetch("/assign-document", {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({ docId: assignDocId, assignTo })
-  });
-
-  if (res.ok) {
-    showToast(`Document assigned to ${assignTo}`, "success");
-    closeAssignModal();
-    load();
-  } else {
-    showToast(await res.text(), "error");
-  }
+  if (!assignTo) { showToast("Enter a username or role", "warn"); return; }
+  const res = await fetch("/assign-document", { method:"POST", headers:getHeaders(), body:JSON.stringify({ docId:assignDocId, assignTo }) });
+  if (res.ok) { showToast(`Document assigned to ${assignTo}`, "success"); closeAssignModal(); load(); }
+  else showToast(await res.text(), "error");
 }
 
-document.getElementById("assignModal").addEventListener("click", function(e) {
-  if (e.target === this) closeAssignModal();
+document.getElementById("assignModal").addEventListener("click", function(e) { if (e.target === this) closeAssignModal(); });
+
+/* ── GLOBAL KEY HANDLERS ── */
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Enter" && document.getElementById("esignModal").classList.contains("open")) submitEsign();
+  if (e.key === "Escape") { closeDocViewer(); closeAssignModal(); closeRejectModal(); closeEsignModal(); }
 });
 
 /* ══════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════ */
+refreshAvatars();
 renderNotifBadge();
-load();
-loadMyKey(); // Load key silently on startup
 
 if (user.role === "ADMIN") {
   switchTab("admin", document.querySelector("[data-tab='admin']"));
 } else {
   switchTab("documents", document.querySelector("[data-tab='documents']"));
 }
-</script>
 
+// Poll for new docs every 30s (simulates push notifications)
+setInterval(async () => {
+  try {
+    const res = await fetch("/documents", { headers: getHeaders(false) });
+    const docs = await res.json();
+    const prevCount = allDocs.length;
+    if (docs.length !== prevCount) {
+      const added = docs.filter(d => !allDocs.find(od => od.id === d.id));
+      added.forEach(d => { if (d.flow.includes(user.role) || d.uploadedBy === user.username) { pushNotif(`📄 New doc for you: "${d.name}"`); playSoundNotif(); } });
+    }
+    // Check for status changes on my docs
+    docs.forEach(d => {
+      if (d.uploadedBy !== user.username) return;
+      const old = allDocs.find(od => od.id === d.id);
+      if (!old) return;
+      if (old.status !== d.status) {
+        if (d.status === "Fully Approved") { pushNotif(`✅ Your doc "${d.name}" was fully approved!`); playSoundSuccess(); }
+        else if (d.status === "Rejected") { pushNotif(`❌ Your doc "${d.name}" was rejected.`); playSoundReject(); }
+        else { pushNotif(`📋 Your doc "${d.name}" status: ${d.status}`); playSoundNotif(); }
+      }
+    });
+    allDocs = docs;
+  } catch(e) {}
+}, 30000);
+</script>
 </body>
 </html>

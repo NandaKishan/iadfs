@@ -59,8 +59,20 @@
       "HOD",
       "ADMIN"
     ],
-    "currentStep": 0,
-    "status": "Pending"
+    "currentStep": 1,
+    "status": "Pending — ADMIN",
+    "assignedTo": "HOD",
+    "signedBy": [
+      "HOD"
+    ],
+    "signatures": {
+      "HOD": {
+        "signer": "abhishek1",
+        "role": "HOD",
+        "hash": "dd4a0ca0b0b15135b34ba3816bf067f6fed8dcfc97ee0e5c2db620a297dc5506",
+        "timestamp": "2026-05-25T09:59:42.298Z"
+      }
+    }
   },
   {
     "id": 1777112019376,
@@ -155,6 +167,25 @@
     "status": "Pending",
     "rejected": false,
     "rejectionComment": "",
-    "signedBy": []
+    "signedBy": [],
+    "assignedTo": "pranav"
+  },
+  {
+    "id": 1779703114139,
+    "name": "dashboard.png",
+    "type": "finance",
+    "flow": [
+      "HOD",
+      "ACCOUNTS",
+      "ADMIN"
+    ],
+    "currentStep": 0,
+    "status": "Pending — HOD",
+    "uploadedBy": "pranav",
+    "uploadedAt": "2026-05-25T09:58:34.139Z",
+    "rejected": false,
+    "rejectionComment": "",
+    "signedBy": [],
+    "signatures": {}
   }
 ]
