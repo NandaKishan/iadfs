@@ -32,6 +32,11 @@ function pushNotif(username, msg) {
   if (list.length > 50) list.pop();
 }
 
+// Server-side SHA-256 for signature verification
+async function computeSHA256(message) {
+  return crypto.createHash("sha256").update(message).digest("hex");
+}
+
 // ─── EMAIL ────────────────────────────────────────────────
 const transporter = nodemailer.createTransport({
   host:   process.env.SMTP_HOST,
@@ -439,8 +444,7 @@ app.post("/reject-user", auth, async (req, res) => {
     if (!inst) return res.status(400).send("Institute not found");
     const idx = inst.users.findIndex(u => u.username === username && u.role === "PENDING");
     if (idx === -1) return res.status(404).send("Pending user not found");
-    inst.users.splice(idx, 1);
-    inst.markModified("users");
+    inst.users = inst.users.filter((_, i) => i !== idx);
     await inst.save();
     for (const [email, rec] of otpStore.entries()) {
       if (rec.data?.username === username) otpStore.delete(email);
@@ -463,8 +467,7 @@ app.post("/delete-user", auth, async (req, res) => {
     const idx = inst.users.findIndex(u => u.username === username);
     if (idx === -1) return res.status(404).send("User not found");
     if (inst.users[idx].role === "ADMIN") return res.status(403).send("Cannot delete an ADMIN");
-    inst.users.splice(idx, 1);
-    inst.markModified("users");
+    inst.users = inst.users.filter(u => u.username !== username);
     await inst.save();
     // Clean up stores
     for (const [email, rec] of otpStore.entries()) {
@@ -569,9 +572,28 @@ app.post("/approve", auth, async (req, res) => {
     if (!doc) return res.status(404).send("Document not found");
     if (doc.flow[doc.currentStep] !== role) return res.status(400).send("Not your turn");
 
+    // ── KEY VALIDATION ──────────────────────────────────────
+    // Look up the signer's stored public key
+    const signerInst = await Institute.findOne({ name: req.user.institute });
+    const signerUser = signerInst?.users.find(u => u.username === req.user.username);
+    if (!signerUser?.signingKey) {
+      return res.status(403).send("No signing key found. Generate your signing key first.");
+    }
+
+    // The client computes: SHA256(username:role:PIN:docId)
+    // The PIN must be the user's public signing key (VNX-...)
+    // Server recomputes the same hash and compares
+    const expectedSig = await computeSHA256(
+      `${req.user.username}:${role}:${signerUser.signingKey}:${id}`
+    );
+    if (!signature || signature !== expectedSig) {
+      return res.status(401).send("Invalid signature — your PIN must be your signing key");
+    }
+    // ────────────────────────────────────────────────────────
+
     const sigHash = crypto
       .createHmac("sha256", SECRET)
-      .update(`${req.user.username}:${role}:${id}:${signature || ""}`)
+      .update(`${req.user.username}:${role}:${id}:${signature}`)
       .digest("hex");
 
     doc.signatures = {
