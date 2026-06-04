@@ -7,7 +7,15 @@ const bcrypt     = require("bcrypt");
 const jwt        = require("jsonwebtoken");
 const crypto     = require("crypto");
 const nodemailer = require("nodemailer");
+const OpenAI = require("openai");
+const pdfParse = require("pdf-parse");
+
 require("dotenv").config();
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+
 
 /* ═══════════════════════════════════════════════════════════
    VENATRIX SERVER v3.1  —  MongoDB Atlas Edition
@@ -64,8 +72,35 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
-app.use("/uploads", express.static("uploads"));
-const upload = multer({ dest: "uploads/" });
+app.use("/uploads", (req, res, next) => {
+  res.setHeader(
+    "Content-Disposition",
+    "inline"
+  );
+  next();
+});
+
+app.use(
+  "/uploads",
+  express.static("uploads")
+);
+
+const storage = multer.diskStorage({
+  destination: "uploads/",
+  filename: (req, file, cb) => {
+    const ext =
+      file.originalname.split(".").pop();
+
+    cb(
+      null,
+      Date.now() + "." + ext
+    );
+  }
+});
+
+const upload = multer({
+  storage
+});
 
 function auth(req, res, next) {
   const token = req.headers.authorization;
@@ -109,7 +144,12 @@ const DocumentSchema = new mongoose.Schema({
   signedBy:         { type: [String], default: [] },
   signatures:       { type: mongoose.Schema.Types.Mixed, default: {} },
   file:             { type: String, default: "" },
-  assignedTo:       { type: String, default: "" }
+  assignedTo:       { type: String, default: "" },
+  extractedText: { type: String, default: "" },
+  summary: { type: String, default: "" },
+  workflowSuggestion: { type: String, default: "" },
+  riskScore: { type: String, default: "" },
+  approvalRecommendation: { type: String, default: "" }
 });
 const Document = mongoose.model("Document", DocumentSchema);
 
@@ -201,6 +241,79 @@ async function notifyRole(docName, role, msg) {
     );
   } catch(e) {}
 }
+
+// ── AI CHAT ENDPOINT ─────────────────────────────────────
+app.post("/ai/chat", auth, async (req, res) => {
+  const { messages, systemPrompt } = req.body;
+
+  if (!messages || !Array.isArray(messages)) {
+    return res.status(400).json({ error: "messages array required" });
+  }
+
+  // Trim history to last 20 turns to control tokens
+  const trimmed = messages.slice(-20);
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      max_tokens: 600,
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt ||
+            `You are Venatrix AI, an assistant for a document workflow management platform.
+             Be concise, helpful, and professional. The user is: ${req.user.username} (${req.user.role}).`
+        },
+        ...trimmed
+      ]
+    });
+
+    const reply = completion.choices[0].message.content;
+    res.json({ reply });
+
+  } catch (err) {
+    console.error("Chat AI error:", err.message);
+    res.status(500).json({ error: "AI service unavailable" });
+  }
+});
+
+//AI -- SUMMARY
+app.post("/ai/user-summary", auth, async (req, res) => {
+
+  const { username } = req.body;
+
+  const docs = await Document.find({
+    uploadedBy: username
+  }).lean();
+
+  const prompt = `
+  Analyze this user's activity.
+
+  Username: ${username}
+
+  Documents:
+  ${JSON.stringify(docs)}
+
+  Give:
+  1. Summary
+  2. Risk level
+  3. Most common document type
+  4. Productivity observations
+  `;
+
+  const response =
+    await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      messages: [
+        { role: "user", content: prompt }
+      ]
+    });
+
+  res.json({
+    analysis:
+      response.choices[0].message.content
+  });
+});
 
 /* ═══════════════════════════════════════════════════════════
    AUTH ROUTES
@@ -503,6 +616,45 @@ app.get("/users-by-role/:institute/:role", auth, async (req, res) => {
 ═══════════════════════════════════════════════════════════ */
 app.post("/upload", auth, upload.single("file"), async (req, res) => {
   const name      = req.file.originalname;
+  console.log("FILE OBJECT:");
+  console.log(req.file);
+
+  console.log("PATH:");
+  console.log(req.file.path);
+  let extractedText = "";
+
+  try {
+
+    const pdfBuffer =
+      fs.readFileSync(req.file.path);
+
+    const pdfData =
+      await pdfParse(pdfBuffer);
+      console.log("Extracted text:");
+      console.log(pdfData.text.substring(0,500));
+
+    console.log(
+      pdfData.text.substring(0,300)
+    );
+
+    extractedText =
+      pdfData.text.slice(0, 12000);
+
+    console.log(
+      "PDF text extracted:",
+      extractedText.length,
+      "characters"
+    );
+
+  } catch(err) {
+
+    console.log(
+      "PDF extraction failed:",
+      err.message
+    );
+
+  }
+
   const nameLower = name.toLowerCase();
   try {
     const allWorkflows     = await Workflow.find({});
@@ -526,26 +678,112 @@ app.post("/upload", auth, upload.single("file"), async (req, res) => {
       flowToUse = wf.flow;
     }
 
+let aiSummary = "";
+
+    try {
+
+      const completion =
+        await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content:
+                `
+                  You are Venatrix AI.
+
+                  Analyze the uploaded document.
+
+                  Return:
+
+                  • Executive Summary
+                  • Key Dates
+                  • Important People
+                  • Risks
+                  • Recommended Action
+
+                  Keep it concise.
+                `
+            },
+            {
+              role: "user",
+              content: `
+            Document Name:
+            ${name}
+
+            Document Content:
+            ${extractedText}
+            `
+            }
+          ]
+        });
+
+      aiSummary =
+        completion.choices[0].message.content;
+
+    } catch(err) {
+      console.error("AI summary failed:", err.message);
+  }
+
     const doc = new Document({
-      id:               Date.now(),
+      id: Date.now(),
       name,
       type,
-      flow:             flowToUse,
-      currentStep:      0,
-      status:           `Pending — ${flowToUse[0]}`,
-      uploadedBy:       req.user.username,
-      uploadedAt:       new Date().toISOString(),
-      rejected:         false,
+      flow: flowToUse,
+      currentStep: 0,
+      status: `Pending — ${flowToUse[0]}`,
+      uploadedBy: req.user.username,
+      uploadedAt: new Date().toISOString(),
+      rejected: false,
       rejectionComment: "",
-      signedBy:         [],
-      signatures:       {},
-      file:             req.file.filename
+      signedBy: [],
+      signatures: {},
+      file: req.file.filename,
+      extractedText,
+      summary: aiSummary
     });
+
     await doc.save();
     await notifyRole(name, flowToUse[0], `📄 New document "${name}" requires your approval`);
     pushNotif(req.user.username, `You uploaded "${name}" — waiting on ${flowToUse[0]}`);
     res.json(doc.toObject());
   } catch(e) { console.error(e); res.status(500).send("Upload failed"); }
+});
+
+app.post("/ai/summarize", auth, async (req, res) => {
+  try {
+
+    const { text } = req.body;
+
+    if (!text) {
+      return res.status(400).send("No text supplied");
+    }
+
+    const completion =
+      await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You summarize institutional documents in concise bullet points."
+          },
+          {
+            role: "user",
+            content: text
+          }
+        ]
+      });
+
+    res.json({
+      summary:
+        completion.choices[0].message.content
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("AI failed");
+  }
 });
 
 app.get("/documents", auth, async (req, res) => {
@@ -755,6 +993,25 @@ app.get("/debug", auth, async (req, res) => {
       }))
     });
   } catch(e) { res.status(500).send(e.message); }
+});
+
+app.get("/ai-test", async (req, res) => {
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [{
+      role: "user",
+      content: `
+Summarize this:
+
+Leave Application
+
+I request leave from June 4 to June 8 due to medical reasons.
+Supporting documents are attached.
+      `
+    }]
+  });
+
+  res.send(response.choices[0].message.content);
 });
 
 /* ═══════════════════════════════════════════════════════════

@@ -1625,3 +1625,148 @@ textarea {
   margin-bottom: 6px;
 }
 
+
+
+/* ==================================================
+   DOCUMENT VIEWER
+================================================== */
+
+.doc-viewer-modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.75);
+  backdrop-filter:blur(10px);
+  z-index:99999;
+
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+.doc-viewer-modal.open{
+  display:flex;
+}
+
+.doc-viewer-box{
+  width:95vw;
+  height:95vh;
+
+  background:var(--bg-card);
+
+  border:1px solid rgba(0,229,200,.2);
+
+  border-radius:24px;
+
+  overflow:hidden;
+
+  display:flex;
+  flex-direction:column;
+
+  box-shadow:
+    0 20px 80px rgba(0,0,0,.6),
+    0 0 50px rgba(0,229,200,.08);
+}
+
+.doc-viewer-bar{
+  flex-shrink:0;
+
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+
+  padding:18px 24px;
+
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+
+.doc-viewer-title{
+  display:flex;
+  align-items:center;
+  gap:12px;
+
+  font-weight:700;
+  font-size:20px;
+}
+
+.doc-viewer-body{
+  flex:1;
+
+  min-height:500px;
+
+  overflow:hidden;
+
+  background:#111;
+}
+
+.doc-viewer-body iframe{
+  width:100%;
+  height:100%;
+  border:none;
+  background:white;
+}
+
+.doc-viewer-body img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+
+.doc-viewer-meta{
+  flex-shrink:0;
+
+  padding:16px 24px;
+
+  border-top:1px solid rgba(255,255,255,.08);
+
+  display:flex;
+  gap:18px;
+  flex-wrap:wrap;
+}
+
+.doc-viewer-meta-item{
+  font-size:12px;
+  color:var(--text-secondary);
+}
+
+/* AI SUMMARY PANEL */
+
+#dvSummary {
+  flex-shrink: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+#dvSummary::-webkit-scrollbar{
+  width:6px;
+}
+
+#dvSummary::-webkit-scrollbar-thumb{
+  background:rgba(0,229,200,.3);
+  border-radius:999px;
+}
+
+
+.doc-viewer-box {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.doc-viewer-body {
+  flex: 1;
+  min-height: 0; /* critical — lets flex shrink below content size */
+  overflow: hidden;
+}
+
+#dvSummary{
+    overflow-y:auto;
+    max-height:250px;
+}
+
+.doc-viewer-meta{
+    flex-shrink:0;
+}
+
+#dvSummary{
+    flex-shrink:0;
+}
